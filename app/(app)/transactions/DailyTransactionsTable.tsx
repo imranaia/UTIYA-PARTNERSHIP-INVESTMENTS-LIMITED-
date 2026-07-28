@@ -29,6 +29,7 @@ type Row = {
   collateralTransferIn: string | null;
   collateralTransferOut: string | null;
   notes: string | null;
+  supplementaryOverride: string | null;
   savingsBalanceBf: string;
 };
 
@@ -105,10 +106,22 @@ function ClientRow({ row, readOnly, selectedDay }: { row: Row; readOnly: boolean
 
       <div className={cn("px-4 pb-4", !open && "hidden")}>
         {offDay && (
-          <p className="mb-3 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            {row.fullName}&apos;s assigned collection day is <strong>{WEEKDAY_NAMES[row.enrollmentDay]}</strong>. Recording a
-            payment here will be counted as a <strong>Supplementary</strong> payment automatically.
-          </p>
+          <div className="mb-3 space-y-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            <p>
+              {row.fullName}&apos;s assigned collection day is <strong>{WEEKDAY_NAMES[row.enrollmentDay]}</strong>. Recording a
+              payment here will be counted as a <strong>Supplementary</strong> payment automatically.
+            </p>
+            <label className="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                name={`sup_${row.clientId}`}
+                defaultChecked={row.supplementaryOverride === "not_supplementary"}
+                disabled={readOnly}
+                className="size-3.5"
+              />
+              This was actually collected on time — data just entered late. Don&apos;t mark as Supplementary.
+            </label>
+          </div>
         )}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {FIELDS.map((f) => (
@@ -169,7 +182,9 @@ export function DailyTransactionsTable({
 }) {
   const [state, formAction, pending] = useActionState(saveDailyTransactionsAction, initialState);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | PaymentStatus>("all");
+  // Default to "who's paying today" rather than dumping the entire roster on
+  // load — the collector's immediate question when opening this page.
+  const [filter, setFilter] = useState<"all" | PaymentStatus>("due_today");
 
   useEffect(() => {
     if (state === initialState) return;

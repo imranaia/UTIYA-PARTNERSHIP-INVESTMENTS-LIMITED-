@@ -2,6 +2,7 @@ import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { listActiveBranches } from "@/lib/db/branches";
 import { listCashBookEntries, listCashBookAccountNames } from "@/lib/db/cashBook";
 import { GlassPanel } from "@/components/layout/GlassPanel";
+import { BackLink } from "@/components/layout/BackLink";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AddEntryDialog } from "./AddEntryDialog";
 
@@ -30,6 +31,7 @@ export default async function CashBookPage({
 
   return (
     <div className="space-y-4">
+      <BackLink href="/bank-reconciliation" label="Back to Bank Reconciliation" />
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold">Cash Book</h1>
         {canCreate && branchId && <AddEntryDialog branchId={branchId} />}

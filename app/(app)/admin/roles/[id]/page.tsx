@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireModule } from "@/lib/auth/session";
 import { getRole, getRolePermissionMatrix } from "@/lib/db/roles";
 import { GlassPanel } from "@/components/layout/GlassPanel";
+import { BackLink } from "@/components/layout/BackLink";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { updateRolePermissionsAction } from "../actions";
@@ -22,6 +23,7 @@ export default async function RolePermissionsPage({ params }: { params: Promise<
 
   return (
     <div className="space-y-4">
+      <BackLink href="/admin/roles" label="Back to Roles" />
       <div className="flex items-center gap-2.5">
         <h1 className="text-lg font-semibold">{role.name}</h1>
         {role.isSystem && (

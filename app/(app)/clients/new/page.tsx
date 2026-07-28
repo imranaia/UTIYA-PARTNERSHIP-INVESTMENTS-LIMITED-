@@ -2,6 +2,7 @@ import { requireModule } from "@/lib/auth/session";
 import { listActiveBranches } from "@/lib/db/branches";
 import { listLoanCollectorsForBranch, listLoanCollectorsByBranch } from "@/lib/db/users";
 import { GlassPanel } from "@/components/layout/GlassPanel";
+import { BackLink } from "@/components/layout/BackLink";
 import { ClientForm } from "./ClientForm";
 
 export default async function NewClientPage() {
@@ -16,7 +17,10 @@ export default async function NewClientPage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4">
-      <h1 className="text-lg font-semibold">Add client</h1>
+      <div>
+        <BackLink href="/clients" label="Back to Clients" />
+        <h1 className="text-lg font-semibold">Add client</h1>
+      </div>
       <GlassPanel className="p-6">
         <ClientForm
           branches={branches}

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireModule } from "@/lib/auth/session";
 import { getImportBatch, getImportBatchRows } from "@/lib/db/imports";
 import { GlassPanel } from "@/components/layout/GlassPanel";
+import { BackLink } from "@/components/layout/BackLink";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -19,6 +20,7 @@ export default async function ImportBatchPage({ params }: { params: Promise<{ id
 
   return (
     <div className="space-y-4">
+      <BackLink href="/import" label="Back to Excel Import" />
       <div className="flex items-center gap-2.5">
         <h1 className="text-lg font-semibold">{batch.fileName}</h1>
         <Badge variant={batch.status === "completed" ? "default" : "secondary"} className="capitalize">

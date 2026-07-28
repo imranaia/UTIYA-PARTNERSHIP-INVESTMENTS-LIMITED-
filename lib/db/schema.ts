@@ -186,6 +186,11 @@ export const clientTransactions = pgTable(
     collateralTransferOut: numeric("collateral_transfer_out", { precision: 14, scale: 2 }).notNull().default("0"),
     savingsBalanceBf: numeric("savings_balance_bf", { precision: 14, scale: 2 }).notNull().default("0"),
     savingsBalanceCf: numeric("savings_balance_cf", { precision: 14, scale: 2 }).notNull().default("0"),
+    // Lets staff correct the automatic day-mismatch detection when it's wrong
+    // — e.g. a payment collected on the client's real day but entered into
+    // the system late, which would otherwise be auto-flagged Supplementary.
+    // 'not_supplementary' suppresses the flag; null/'auto' leaves it automatic.
+    supplementaryOverride: varchar("supplementary_override", { length: 20 }),
     notes: text("notes"),
     recordedBy: integer("recorded_by")
       .notNull()

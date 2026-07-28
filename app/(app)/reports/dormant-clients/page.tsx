@@ -3,6 +3,7 @@ import { requireModule } from "@/lib/auth/session";
 import { listActiveBranches } from "@/lib/db/branches";
 import { listDormantClients } from "@/lib/db/clients";
 import { GlassPanel } from "@/components/layout/GlassPanel";
+import { BackLink } from "@/components/layout/BackLink";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -29,6 +30,7 @@ export default async function DormantClientsPage({
 
   return (
     <div className="space-y-4">
+      <BackLink href="/reports" label="Back to Reports" />
       <div>
         <h1 className="text-lg font-semibold">Dormant Clients</h1>
         <p className="text-sm text-muted-foreground">

@@ -5,6 +5,7 @@ import { listDefaults, RESOLUTION_TYPES } from "@/lib/db/clientDefaults";
 
 const RESOLUTION_LABELS = Object.fromEntries(RESOLUTION_TYPES.map((r) => [r.key, r.label]));
 import { GlassPanel } from "@/components/layout/GlassPanel";
+import { BackLink } from "@/components/layout/BackLink";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AddDefaultDialog } from "./AddDefaultDialog";
@@ -33,6 +34,7 @@ export default async function ClientDefaultsPage({ searchParams }: { searchParam
 
   return (
     <div className="space-y-4">
+      <BackLink href="/clients" label="Back to Clients" />
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold">Bad Debts / Defaults</h1>
         {canEdit && branchId && <AddDefaultDialog clients={clientOptions} branchId={branchId} />}

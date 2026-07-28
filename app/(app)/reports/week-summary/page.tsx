@@ -5,6 +5,7 @@ import { getTransactionTotalsForRange, getExpenseTotalForRange } from "@/lib/db/
 import { getLedgerTotals } from "@/lib/db/ledger";
 import { getReconciliationBefore, getReconciliationOnOrBefore } from "@/lib/db/bankReconciliation";
 import { GlassPanel } from "@/components/layout/GlassPanel";
+import { BackLink } from "@/components/layout/BackLink";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -44,6 +45,7 @@ export default async function WeekSummaryPage({
   if (!branchId) {
     return (
       <div className="space-y-4">
+        <BackLink href="/reports" label="Back to Reports" />
         <h1 className="text-lg font-semibold">Week Summary</h1>
         <GlassPanel className="p-6 text-center text-muted-foreground">Select a branch to begin.</GlassPanel>
       </div>
@@ -81,6 +83,7 @@ export default async function WeekSummaryPage({
 
   return (
     <div className="space-y-4">
+      <BackLink href="/reports" label="Back to Reports" />
       <h1 className="text-lg font-semibold">Week Summary</h1>
 
       <GlassPanel className="p-4">

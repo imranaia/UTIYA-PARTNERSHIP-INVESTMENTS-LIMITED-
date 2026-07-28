@@ -3,6 +3,7 @@ import { requireModule } from "@/lib/auth/session";
 import { listActiveBranches } from "@/lib/db/branches";
 import { getDailyPortfolioTracker } from "@/lib/db/portfolioTracker";
 import { GlassPanel } from "@/components/layout/GlassPanel";
+import { BackLink } from "@/components/layout/BackLink";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -38,6 +39,7 @@ export default async function PortfolioTrackerPage({
   if (!branchId) {
     return (
       <div className="space-y-4">
+        <BackLink href="/reports" label="Back to Reports" />
         <h1 className="text-lg font-semibold">Portfolio Tracker</h1>
         <GlassPanel className="p-6 text-center text-muted-foreground">Select a branch to begin.</GlassPanel>
       </div>
@@ -49,6 +51,7 @@ export default async function PortfolioTrackerPage({
 
   return (
     <div className="space-y-4">
+      <BackLink href="/reports" label="Back to Reports" />
       <div>
         <h1 className="text-lg font-semibold">Portfolio Tracker</h1>
         <p className="text-sm text-muted-foreground">

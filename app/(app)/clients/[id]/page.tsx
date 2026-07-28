@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { getClientById, listClientTransactions } from "@/lib/db/clients";
 import { GlassPanel } from "@/components/layout/GlassPanel";
+import { BackLink } from "@/components/layout/BackLink";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ClientStatusControl } from "./ClientStatusControl";
@@ -26,6 +27,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div className="space-y-4">
+      <BackLink href="/clients" label="Back to Clients" />
       <div className="flex items-center justify-between gap-2.5">
         <div className="flex items-center gap-2.5">
           <h1 className="text-lg font-semibold">{client.fullName}</h1>

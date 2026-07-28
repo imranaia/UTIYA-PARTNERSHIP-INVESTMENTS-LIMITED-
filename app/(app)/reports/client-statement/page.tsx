@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireModule } from "@/lib/auth/session";
 import { listClients, getClientById, listClientTransactions } from "@/lib/db/clients";
 import { GlassPanel } from "@/components/layout/GlassPanel";
+import { BackLink } from "@/components/layout/BackLink";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ export default async function ClientStatementPage({
 
     return (
       <div className="space-y-4">
+        <BackLink href="/reports" label="Back to Reports" />
         <div>
           <h1 className="text-lg font-semibold">Client Statement</h1>
           <p className="text-sm text-muted-foreground">Search for a client to see their full statement.</p>
@@ -87,6 +89,7 @@ export default async function ClientStatementPage({
   if (!client || (user.roleKey !== "super_admin" && client.branchId !== user.branchId)) {
     return (
       <div className="space-y-4">
+        <BackLink href="/reports" label="Back to Reports" />
         <h1 className="text-lg font-semibold">Client Statement</h1>
         <GlassPanel className="p-6 text-center text-muted-foreground">Client not found.</GlassPanel>
       </div>
@@ -111,6 +114,7 @@ export default async function ClientStatementPage({
 
   return (
     <div className="space-y-4">
+      <BackLink href="/reports" label="Back to Reports" />
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold">Client Statement</h1>

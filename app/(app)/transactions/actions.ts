@@ -79,6 +79,7 @@ export async function saveDailyTransactionsAction(
       collateralTransferIn: d.collateralTransferIn.toString(),
       collateralTransferOut: d.collateralTransferOut.toString(),
       notes: d.notes,
+      supplementaryOverride: formData.get(`sup_${clientId}`) === "on",
       recordedBy: user.userId,
     });
     savedCount++;

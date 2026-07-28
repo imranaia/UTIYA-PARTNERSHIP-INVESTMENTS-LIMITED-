@@ -4,6 +4,7 @@ import { listActiveBranches } from "@/lib/db/branches";
 import { listLoanCollectorsForBranch } from "@/lib/db/users";
 import { runCustomReport, REPORT_METRICS, GROUP_BY_OPTIONS, type GroupByKey, type MetricKey } from "@/lib/db/customReport";
 import { GlassPanel } from "@/components/layout/GlassPanel";
+import { BackLink } from "@/components/layout/BackLink";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -63,6 +64,7 @@ export default async function CustomReportPage({
 
   return (
     <div className="space-y-4">
+      <BackLink href="/reports" label="Back to Reports" />
       <div>
         <h1 className="text-lg font-semibold">Custom Report</h1>
         <p className="text-sm text-muted-foreground">

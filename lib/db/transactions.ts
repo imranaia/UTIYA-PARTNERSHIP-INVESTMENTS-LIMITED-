@@ -31,6 +31,7 @@ export async function listDailyEntryRows(params: { branchId: number; collectorId
       collateralTransferIn: clientTransactions.collateralTransferIn,
       collateralTransferOut: clientTransactions.collateralTransferOut,
       notes: clientTransactions.notes,
+      supplementaryOverride: clientTransactions.supplementaryOverride,
       savingsBalanceBf: sql<string>`coalesce((
         select ct.savings_balance_cf from client_transactions ct
         where ct.client_id = ${clients.id} and ct.transaction_date < ${params.date}
@@ -123,9 +124,11 @@ export async function saveTransactionRow(data: {
   collateralTransferIn: string;
   collateralTransferOut: string;
   notes?: string;
+  supplementaryOverride?: boolean;
   recordedBy: number;
 }) {
   const db = getDb();
+  const supplementaryOverride = data.supplementaryOverride ? "not_supplementary" : null;
   await db.transaction(async (tx) => {
     const [existing] = await tx
       .select({ id: clientTransactions.id })
@@ -152,6 +155,7 @@ export async function saveTransactionRow(data: {
         savingsBalanceBf: "0",
         savingsBalanceCf: "0",
         notes: data.notes,
+        supplementaryOverride,
         recordedBy: data.recordedBy,
       })
       .onConflictDoUpdate({
@@ -166,6 +170,7 @@ export async function saveTransactionRow(data: {
           collateralTransferIn: data.collateralTransferIn,
           collateralTransferOut: data.collateralTransferOut,
           notes: data.notes,
+          supplementaryOverride,
           recordedBy: data.recordedBy,
           updatedAt: new Date(),
         },

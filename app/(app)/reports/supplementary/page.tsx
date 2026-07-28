@@ -1,13 +1,15 @@
 import { format, startOfMonth } from "date-fns";
-import { requireModule } from "@/lib/auth/session";
+import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { listActiveBranches } from "@/lib/db/branches";
 import { listLoanCollectorsForBranch } from "@/lib/db/users";
 import { listSupplementaryPayments } from "@/lib/db/supplementary";
 import { GlassPanel } from "@/components/layout/GlassPanel";
+import { BackLink } from "@/components/layout/BackLink";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { NotSupplementaryButton } from "./NotSupplementaryButton";
 
 const WEEKDAY_NAMES = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -28,6 +30,7 @@ export default async function SupplementaryReportPage({
   searchParams: Promise<{ branchId?: string; from?: string; to?: string; collectorId?: string }>;
 }) {
   const user = await requireModule("reports", "view");
+  const { canEdit } = await getModulePermission("transactions");
   const isSuperAdmin = user.roleKey === "super_admin";
   const { branchId: branchIdParam, from: fromParam, to: toParam, collectorId: collectorIdParam } = await searchParams;
 
@@ -47,6 +50,7 @@ export default async function SupplementaryReportPage({
 
   return (
     <div className="space-y-4">
+      <BackLink href="/reports" label="Back to Reports" />
       <div>
         <h1 className="text-lg font-semibold">Supplementary Payments</h1>
         <p className="text-sm text-muted-foreground">
@@ -137,6 +141,7 @@ export default async function SupplementaryReportPage({
               <TableHead>Type</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead>Payment ID</TableHead>
+              {canEdit && <TableHead />}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -160,12 +165,17 @@ export default async function SupplementaryReportPage({
                   </TableCell>
                   <TableCell className="text-right">{money(amount)}</TableCell>
                   <TableCell className="text-muted-foreground">{p.paymentId ?? "—"}</TableCell>
+                  {canEdit && (
+                    <TableCell>
+                      <NotSupplementaryButton transactionId={p.id} />
+                    </TableCell>
+                  )}
                 </TableRow>
               );
             })}
             {payments.length === 0 && (
               <TableRow>
-                <TableCell colSpan={isSuperAdmin ? 8 : 7} className="text-center text-muted-foreground">
+                <TableCell colSpan={isSuperAdmin ? (canEdit ? 9 : 8) : canEdit ? 8 : 7} className="text-center text-muted-foreground">
                   No supplementary payments in this range — everyone paid on their assigned day.
                 </TableCell>
               </TableRow>
@@ -173,6 +183,11 @@ export default async function SupplementaryReportPage({
           </TableBody>
         </Table>
       </GlassPanel>
+
+      <p className="text-xs text-muted-foreground">
+        If a payment shows here only because it was entered into the system late — not because it was actually collected
+        off-day — use &quot;Not supplementary&quot; to correct it.
+      </p>
     </div>
   );
 }
