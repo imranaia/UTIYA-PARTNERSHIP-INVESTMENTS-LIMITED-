@@ -1,0 +1,32 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { getIronSession } from "iron-session";
+import { sessionOptions, type SessionData } from "@/lib/auth/session";
+
+const PUBLIC_PATHS = ["/login"];
+
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (PUBLIC_PATHS.some((p) => pathname === p) || pathname.startsWith("/_next") || pathname.startsWith("/api/public")) {
+    return NextResponse.next();
+  }
+
+  const response = NextResponse.next();
+  const session = await getIronSession<{ user?: SessionData }>(request, response, sessionOptions);
+
+  if (!session.user) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return response;
+}
+
+// Coarse authentication gate only (edge-safe: decodes the signed cookie,
+// no DB access). Authoritative per-module/action permission checks happen
+// in Server Components (requireActiveUser) and Server Actions (requireModule),
+// which run in the Node runtime and can query role_permissions from Postgres.
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+};
