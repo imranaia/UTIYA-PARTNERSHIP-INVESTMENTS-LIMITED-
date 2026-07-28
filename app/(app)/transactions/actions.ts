@@ -16,6 +16,8 @@ const rowSchema = z.object({
   serviceCharge: z.coerce.number().nonnegative().default(0),
   newSavings: z.coerce.number().nonnegative().default(0),
   savingsRecall: z.coerce.number().nonnegative().default(0),
+  collateralTransferIn: z.coerce.number().nonnegative().default(0),
+  collateralTransferOut: z.coerce.number().nonnegative().default(0),
   notes: z.string().trim().max(300).optional(),
 });
 
@@ -56,6 +58,8 @@ export async function saveDailyTransactionsAction(
       serviceCharge: formData.get(`sc_${clientId}`),
       newSavings: formData.get(`ns_${clientId}`),
       savingsRecall: formData.get(`sr_${clientId}`),
+      collateralTransferIn: formData.get(`ci_${clientId}`),
+      collateralTransferOut: formData.get(`co_${clientId}`),
       notes: formData.get(`nt_${clientId}`) || undefined,
     });
     if (!parsed.success || isEmptyRow(parsed.data)) continue;
@@ -71,6 +75,8 @@ export async function saveDailyTransactionsAction(
       serviceCharge: d.serviceCharge.toString(),
       newSavings: d.newSavings.toString(),
       savingsRecall: d.savingsRecall.toString(),
+      collateralTransferIn: d.collateralTransferIn.toString(),
+      collateralTransferOut: d.collateralTransferOut.toString(),
       notes: d.notes,
       recordedBy: user.userId,
     });

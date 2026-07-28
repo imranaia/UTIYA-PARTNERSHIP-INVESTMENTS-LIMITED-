@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, AlertTriangle } from "lucide-react";
 import { requireModule } from "@/lib/auth/session";
 import { listClients } from "@/lib/db/clients";
 import { GlassPanel } from "@/components/layout/GlassPanel";
@@ -19,12 +19,20 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold">Clients</h1>
-        <Button asChild size="sm" className="gap-1.5">
-          <Link href="/clients/new">
-            <Plus className="size-4" />
-            Add Client
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="secondary" size="sm" className="gap-1.5">
+            <Link href="/clients/defaults">
+              <AlertTriangle className="size-4" />
+              Defaults
+            </Link>
+          </Button>
+          <Button asChild size="sm" className="gap-1.5">
+            <Link href="/clients/new">
+              <Plus className="size-4" />
+              Add Client
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <form className="flex gap-2">

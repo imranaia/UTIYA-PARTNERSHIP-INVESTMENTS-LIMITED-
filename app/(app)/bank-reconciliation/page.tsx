@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, BookOpen } from "lucide-react";
 import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { listReconciliations } from "@/lib/db/bankReconciliation";
 import { GlassPanel } from "@/components/layout/GlassPanel";
@@ -22,14 +22,22 @@ export default async function BankReconciliationPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold">Bank Reconciliation</h1>
-        {canCreate && (
-          <Button asChild size="sm" className="gap-1.5">
-            <Link href="/bank-reconciliation/new">
-              <Plus className="size-4" />
-              Add Reconciliation
+        <div className="flex gap-2">
+          <Button asChild variant="secondary" size="sm" className="gap-1.5">
+            <Link href="/bank-reconciliation/cash-book">
+              <BookOpen className="size-4" />
+              Cash Book
             </Link>
           </Button>
-        )}
+          {canCreate && (
+            <Button asChild size="sm" className="gap-1.5">
+              <Link href="/bank-reconciliation/new">
+                <Plus className="size-4" />
+                Add Reconciliation
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       <GlassPanel className="overflow-hidden p-0">

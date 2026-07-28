@@ -55,6 +55,15 @@ export async function getClientById(id: number) {
   return row ?? null;
 }
 
+export async function listActiveClientsForSelect(branchId: number) {
+  const db = getDb();
+  return db
+    .select({ id: clients.id, clientCode: clients.clientCode, fullName: clients.fullName })
+    .from(clients)
+    .where(and(eq(clients.branchId, branchId), eq(clients.status, "active")))
+    .orderBy(clients.clientCode);
+}
+
 export async function filterClientIdsInBranch(clientIds: number[], branchId: number) {
   if (clientIds.length === 0) return new Set<number>();
   const db = getDb();

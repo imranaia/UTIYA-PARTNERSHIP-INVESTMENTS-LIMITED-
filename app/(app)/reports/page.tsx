@@ -1,6 +1,7 @@
 import { requireModule } from "@/lib/auth/session";
 import { listActiveBranches } from "@/lib/db/branches";
 import { getPortfolioSummary, getDailyTransactionTotals, getDailyExpenseTotal, getBranchBreakdown } from "@/lib/db/reports";
+import { getOpenDefaultCount } from "@/lib/db/clientDefaults";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -46,10 +47,11 @@ export default async function ReportsPage({
   const branches = isSuperAdmin ? await listActiveBranches() : [];
   const branchId = isSuperAdmin ? (branchIdParam ? Number(branchIdParam) : null) : user.branchId;
 
-  const [portfolio, dailyTotals, dailyExpenses, breakdown] = await Promise.all([
+  const [portfolio, dailyTotals, dailyExpenses, openDefaults, breakdown] = await Promise.all([
     getPortfolioSummary(branchId),
     getDailyTransactionTotals({ branchId, date: reportDate }),
     getDailyExpenseTotal({ branchId, date: reportDate }),
+    getOpenDefaultCount(branchId),
     isSuperAdmin && branchId === null ? getBranchBreakdown(reportDate) : Promise.resolve(null),
   ]);
 
@@ -93,7 +95,7 @@ export default async function ReportsPage({
         </form>
       </GlassPanel>
 
-      <GlassPanel className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-4">
+      <GlassPanel className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-5">
         <StatTile label="Active Clients" value={portfolio.activeClients.toLocaleString()} />
         <StatTile label="Total Capital (Savings)" value={money(portfolio.totalSavings)} />
         <StatTile label="Today's Expenses" value={money(dailyExpenses)} emphasis="negative" />
@@ -101,6 +103,11 @@ export default async function ReportsPage({
           label="Net Cash Movement"
           value={money(netCashMovement)}
           emphasis={netCashMovement >= 0 ? "positive" : "negative"}
+        />
+        <StatTile
+          label="Open Defaults"
+          value={openDefaults.toLocaleString()}
+          emphasis={openDefaults > 0 ? "negative" : undefined}
         />
       </GlassPanel>
 

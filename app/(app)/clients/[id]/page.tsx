@@ -66,6 +66,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               <TableHead className="text-right">Loan Disb.</TableHead>
               <TableHead className="text-right">Recall</TableHead>
               <TableHead className="text-right">New Savings</TableHead>
+              <TableHead className="text-right">Collateral In</TableHead>
+              <TableHead className="text-right">Collateral Out</TableHead>
               <TableHead className="text-right">Savings B/F</TableHead>
               <TableHead className="text-right">Savings C/F</TableHead>
             </TableRow>
@@ -77,13 +79,15 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 <TableCell className="text-right">{money(t.loanDisbursement)}</TableCell>
                 <TableCell className="text-right">{money(t.loanRecovery)}</TableCell>
                 <TableCell className="text-right">{money(t.newSavings)}</TableCell>
+                <TableCell className="text-right">{money(t.collateralTransferIn)}</TableCell>
+                <TableCell className="text-right">{money(t.collateralTransferOut)}</TableCell>
                 <TableCell className="text-right">{money(t.savingsBalanceBf)}</TableCell>
                 <TableCell className="text-right">{money(t.savingsBalanceCf)}</TableCell>
               </TableRow>
             ))}
             {transactions.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-muted-foreground">
                   No transactions recorded yet.
                 </TableCell>
               </TableRow>

@@ -19,6 +19,8 @@ type Row = {
   serviceCharge: string | null;
   newSavings: string | null;
   savingsRecall: string | null;
+  collateralTransferIn: string | null;
+  collateralTransferOut: string | null;
   notes: string | null;
   savingsBalanceBf: string;
 };
@@ -64,6 +66,8 @@ export function DailyTransactionsTable({
               <TableHead className="text-right">Service Chg.</TableHead>
               <TableHead className="text-right">New Savings</TableHead>
               <TableHead className="text-right">Savings Recall</TableHead>
+              <TableHead className="text-right">Collateral In</TableHead>
+              <TableHead className="text-right">Collateral Out</TableHead>
               <TableHead>Notes</TableHead>
             </TableRow>
           </TableHeader>
@@ -147,13 +151,35 @@ export function DailyTransactionsTable({
                   />
                 </TableCell>
                 <TableCell>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    name={`ci_${r.clientId}`}
+                    defaultValue={r.collateralTransferIn ?? ""}
+                    disabled={readOnly}
+                    className={cellInputClass}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    name={`co_${r.clientId}`}
+                    defaultValue={r.collateralTransferOut ?? ""}
+                    disabled={readOnly}
+                    className={cellInputClass}
+                  />
+                </TableCell>
+                <TableCell>
                   <Input name={`nt_${r.clientId}`} defaultValue={r.notes ?? ""} disabled={readOnly} className="h-8 w-32" />
                 </TableCell>
               </TableRow>
             ))}
             {rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
+                <TableCell colSpan={11} className="text-center text-muted-foreground">
                   No active clients for this branch/collector.
                 </TableCell>
               </TableRow>

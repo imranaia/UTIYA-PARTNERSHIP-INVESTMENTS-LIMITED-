@@ -21,6 +21,8 @@ export async function listDailyEntryRows(params: { branchId: number; collectorId
       serviceCharge: clientTransactions.serviceCharge,
       newSavings: clientTransactions.newSavings,
       savingsRecall: clientTransactions.savingsRecall,
+      collateralTransferIn: clientTransactions.collateralTransferIn,
+      collateralTransferOut: clientTransactions.collateralTransferOut,
       notes: clientTransactions.notes,
       savingsBalanceBf: sql<string>`coalesce((
         select ct.savings_balance_cf from client_transactions ct
@@ -76,6 +78,8 @@ export async function saveTransactionRow(data: {
   serviceCharge: string;
   newSavings: string;
   savingsRecall: string;
+  collateralTransferIn: string;
+  collateralTransferOut: string;
   notes?: string;
   recordedBy: number;
 }) {
@@ -93,6 +97,8 @@ export async function saveTransactionRow(data: {
         serviceCharge: data.serviceCharge,
         newSavings: data.newSavings,
         savingsRecall: data.savingsRecall,
+        collateralTransferIn: data.collateralTransferIn,
+        collateralTransferOut: data.collateralTransferOut,
         savingsBalanceBf: "0",
         savingsBalanceCf: "0",
         notes: data.notes,
@@ -107,6 +113,8 @@ export async function saveTransactionRow(data: {
           serviceCharge: data.serviceCharge,
           newSavings: data.newSavings,
           savingsRecall: data.savingsRecall,
+          collateralTransferIn: data.collateralTransferIn,
+          collateralTransferOut: data.collateralTransferOut,
           notes: data.notes,
           recordedBy: data.recordedBy,
           updatedAt: new Date(),
@@ -124,6 +132,8 @@ export function isEmptyRow(d: {
   serviceCharge: number;
   newSavings: number;
   savingsRecall: number;
+  collateralTransferIn: number;
+  collateralTransferOut: number;
   notes?: string;
 }) {
   return (
@@ -133,6 +143,8 @@ export function isEmptyRow(d: {
     d.serviceCharge === 0 &&
     d.newSavings === 0 &&
     d.savingsRecall === 0 &&
+    d.collateralTransferIn === 0 &&
+    d.collateralTransferOut === 0 &&
     !d.notes
   );
 }
