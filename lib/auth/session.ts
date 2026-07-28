@@ -65,8 +65,10 @@ export async function requireActiveUser(): Promise<SessionData> {
   const [dbUser] = await db.select().from(users).where(eq(users.id, sessionUser.userId));
 
   if (!dbUser || !dbUser.isActive || dbUser.tokenVersion !== sessionUser.tokenVersion) {
-    const session = await getSession();
-    session.destroy();
+    // Can't mutate the session cookie here (Server Components can't set
+    // cookies, only Server Actions/Route Handlers can) — redirecting is
+    // enough, since every request re-validates against the DB anyway. The
+    // stale cookie gets overwritten the next time this user logs in.
     redirect("/login");
   }
 
