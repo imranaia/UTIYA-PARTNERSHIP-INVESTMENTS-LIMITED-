@@ -1,7 +1,7 @@
 import "server-only";
 import { getDb } from "./client";
 import { users, roles, branches } from "./schema";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql, and, inArray } from "drizzle-orm";
 import { hashPassword, generateTempPassword } from "@/lib/auth/password";
 
 export async function getUserByUsername(username: string) {
@@ -68,6 +68,28 @@ export async function listLoanCollectorsForBranch(branchId: number) {
     .from(users)
     .innerJoin(roles, eq(roles.id, users.roleId))
     .where(and(eq(users.branchId, branchId), eq(roles.key, "loan_collector"), eq(users.isActive, true)));
+}
+
+// Grouped by branch so a single query can back a client-side branch select
+// (e.g. super admin picking a branch on the "Add client" form) without a
+// server round-trip per selection.
+export async function listLoanCollectorsByBranch(branchIds: number[]) {
+  if (branchIds.length === 0) return new Map<number, { id: number; fullName: string }[]>();
+  const db = getDb();
+  const rows = await db
+    .select({ id: users.id, fullName: users.fullName, branchId: users.branchId })
+    .from(users)
+    .innerJoin(roles, eq(roles.id, users.roleId))
+    .where(and(inArray(users.branchId, branchIds), eq(roles.key, "loan_collector"), eq(users.isActive, true)));
+
+  const map = new Map<number, { id: number; fullName: string }[]>();
+  for (const row of rows) {
+    if (row.branchId === null) continue;
+    const list = map.get(row.branchId) ?? [];
+    list.push({ id: row.id, fullName: row.fullName });
+    map.set(row.branchId, list);
+  }
+  return map;
 }
 
 export async function listUsersForBranch(branchId: number | null) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,21 +15,26 @@ function today() {
 
 export function ClientForm({
   branches,
-  collectors,
+  collectorsByBranch,
   showBranchSelect,
+  defaultBranchId,
 }: {
   branches: { id: number; name: string; code: string }[];
-  collectors: { id: number; fullName: string }[];
+  collectorsByBranch: Record<number, { id: number; fullName: string }[]>;
   showBranchSelect: boolean;
+  defaultBranchId?: number;
 }) {
   const [state, formAction, pending] = useActionState(createClientAction, initialState);
+  const [branchId, setBranchId] = useState<string>(defaultBranchId ? String(defaultBranchId) : "");
+
+  const collectors = branchId ? (collectorsByBranch[Number(branchId)] ?? []) : [];
 
   return (
     <form action={formAction} className="space-y-4">
       {showBranchSelect && (
         <div className="space-y-1.5">
           <Label htmlFor="branchId">Branch</Label>
-          <Select name="branchId" required>
+          <Select name="branchId" value={branchId} onValueChange={setBranchId} required>
             <SelectTrigger id="branchId" className="w-full">
               <SelectValue placeholder="Select a branch" />
             </SelectTrigger>
@@ -73,7 +78,7 @@ export function ClientForm({
       {collectors.length > 0 && (
         <div className="space-y-1.5">
           <Label htmlFor="loanCollectorId">Loan collector (optional)</Label>
-          <Select name="loanCollectorId">
+          <Select name="loanCollectorId" key={branchId}>
             <SelectTrigger id="loanCollectorId" className="w-full">
               <SelectValue placeholder="Assign later" />
             </SelectTrigger>
