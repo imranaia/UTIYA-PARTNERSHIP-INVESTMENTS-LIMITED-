@@ -79,10 +79,10 @@ export async function requireActiveUser(): Promise<SessionData> {
 
 export type ModuleAction = "view" | "create" | "edit" | "delete";
 
-// Server Actions/route handlers: throws if the user's role lacks the given
-// permission on the given module. Always call this in mutating actions —
-// the sidebar hiding a link is not itself an access control mechanism.
-export async function requireModule(moduleKey: string, action: ModuleAction = "view") {
+// Non-throwing permission lookup — use this in Server Components when you need
+// to know *which* actions to render (e.g. hide the "Save" button), not just
+// whether the page itself is accessible.
+export async function getModulePermission(moduleKey: string) {
   const user = await requireActiveUser();
   const db = getDb();
 
@@ -97,7 +97,21 @@ export async function requireModule(moduleKey: string, action: ModuleAction = "v
     .innerJoin(modules, eq(modules.id, rolePermissions.moduleId))
     .where(and(eq(rolePermissions.roleId, user.roleId), eq(modules.key, moduleKey)));
 
-  const allowed = perm && { view: perm.canView, create: perm.canCreate, edit: perm.canEdit, delete: perm.canDelete }[action];
+  return {
+    user,
+    canView: perm?.canView ?? false,
+    canCreate: perm?.canCreate ?? false,
+    canEdit: perm?.canEdit ?? false,
+    canDelete: perm?.canDelete ?? false,
+  };
+}
+
+// Server Actions/route handlers: throws if the user's role lacks the given
+// permission on the given module. Always call this in mutating actions —
+// the sidebar hiding a link is not itself an access control mechanism.
+export async function requireModule(moduleKey: string, action: ModuleAction = "view") {
+  const { user, canView, canCreate, canEdit, canDelete } = await getModulePermission(moduleKey);
+  const allowed = { view: canView, create: canCreate, edit: canEdit, delete: canDelete }[action];
 
   if (!allowed) {
     throw new Error(`Not authorized: role lacks '${action}' on module '${moduleKey}'`);
