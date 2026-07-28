@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, CalendarClock, TrendingUp, MoonStar } from "lucide-react";
+import { BookOpen, CalendarClock, TrendingUp, MoonStar, UserSearch, SlidersHorizontal, RefreshCcw } from "lucide-react";
 import { requireModule } from "@/lib/auth/session";
 import { listActiveBranches } from "@/lib/db/branches";
 import {
@@ -103,6 +103,24 @@ export default async function ReportsPage({
             <Link href="/reports/dormant-clients">
               <MoonStar className="size-4" />
               Dormant
+            </Link>
+          </Button>
+          <Button asChild variant="secondary" size="sm" className="gap-1.5">
+            <Link href="/reports/client-statement">
+              <UserSearch className="size-4" />
+              Client Statement
+            </Link>
+          </Button>
+          <Button asChild variant="secondary" size="sm" className="gap-1.5">
+            <Link href="/reports/custom">
+              <SlidersHorizontal className="size-4" />
+              Custom Report
+            </Link>
+          </Button>
+          <Button asChild variant="secondary" size="sm" className="gap-1.5">
+            <Link href="/reports/loan-maturity">
+              <RefreshCcw className="size-4" />
+              Loan Maturity
             </Link>
           </Button>
           <Button asChild variant="secondary" size="sm" className="gap-1.5">

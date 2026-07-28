@@ -9,6 +9,7 @@ import { logAction } from "@/lib/db/audit";
 
 const reconSchema = z.object({
   reconDate: z.string().refine((v) => !Number.isNaN(Date.parse(v)), "Invalid date"),
+  accountName: z.string().trim().max(60).optional().or(z.literal("")),
   bankBalance: z.coerce.number(),
   cashBalance: z.coerce.number(),
   bookBalance: z.coerce.number(),
@@ -26,6 +27,7 @@ export async function createReconciliationAction(
 
   const parsed = reconSchema.safeParse({
     reconDate: formData.get("reconDate"),
+    accountName: formData.get("accountName"),
     bankBalance: formData.get("bankBalance"),
     cashBalance: formData.get("cashBalance"),
     bookBalance: formData.get("bookBalance"),
@@ -44,6 +46,7 @@ export async function createReconciliationAction(
   const recon = await createReconciliation({
     branchId,
     reconDate: parsed.data.reconDate,
+    accountName: parsed.data.accountName || undefined,
     bankBalance: parsed.data.bankBalance.toString(),
     cashBalance: parsed.data.cashBalance.toString(),
     bookBalance: parsed.data.bookBalance.toString(),

@@ -41,6 +41,8 @@ export async function getClientById(id: number) {
       phone: clients.phone,
       address: clients.address,
       groupName: clients.groupName,
+      businessType: clients.businessType,
+      businessLocation: clients.businessLocation,
       status: clients.status,
       branchId: clients.branchId,
       branchName: branches.name,
@@ -148,6 +150,8 @@ export async function createClient(data: {
   phone?: string;
   address?: string;
   groupName?: string;
+  businessType?: string;
+  businessLocation?: string;
   enrollmentDate: Date;
   loanCollectorId?: number;
   openingSavings?: string;
@@ -169,6 +173,8 @@ export async function createClient(data: {
         phone: data.phone,
         address: data.address,
         groupName: data.groupName,
+        businessType: data.businessType,
+        businessLocation: data.businessLocation,
         enrollmentWeek,
         enrollmentDay,
         enrollmentDate: data.enrollmentDate.toISOString().slice(0, 10),

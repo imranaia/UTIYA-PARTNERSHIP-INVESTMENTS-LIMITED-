@@ -4,18 +4,23 @@ import { clients, clientTransactions } from "./schema";
 import { eq, and, asc, desc, lt, gte, sql } from "drizzle-orm";
 import type { DbTx } from "./client";
 import { generatePaymentId } from "@/lib/services/paymentId";
+import { startOfWeek, getISODay } from "date-fns";
 
 export async function listDailyEntryRows(params: { branchId: number; collectorId?: number; date: string }) {
   const db = getDb();
   const conditions = [eq(clients.status, "active"), eq(clients.branchId, params.branchId)];
   if (params.collectorId) conditions.push(eq(clients.loanCollectorId, params.collectorId));
 
-  return db
+  const weekStart = startOfWeek(new Date(params.date + "T00:00:00Z"), { weekStartsOn: 1 }).toISOString().slice(0, 10);
+  const selectedDay = getISODay(new Date(params.date + "T00:00:00Z"));
+
+  const rows = await db
     .select({
       clientId: clients.id,
       clientCode: clients.clientCode,
       fullName: clients.fullName,
       groupName: clients.groupName,
+      enrollmentDay: clients.enrollmentDay,
       paymentId: clientTransactions.paymentId,
       loanDisbursement: clientTransactions.loanDisbursement,
       loanRecovery: clientTransactions.loanRecovery,
@@ -31,6 +36,16 @@ export async function listDailyEntryRows(params: { branchId: number; collectorId
         where ct.client_id = ${clients.id} and ct.transaction_date < ${params.date}
         order by ct.transaction_date desc limit 1
       ), '0')`.as("savings_balance_bf"),
+      // Most recent day this week (up to the selected date) the client actually
+      // paid something in — used to tell "paid on time" from "paid early/late
+      // (supplementary)" apart from "hasn't paid yet this week".
+      lastPaymentThisWeek: sql<string | null>`(
+        select ct.transaction_date::text from client_transactions ct
+        where ct.client_id = ${clients.id}
+          and ct.transaction_date >= ${weekStart} and ct.transaction_date <= ${params.date}
+          and (ct.loan_recovery > 0 or ct.new_savings > 0 or ct.profit_interest > 0 or ct.service_charge > 0)
+        order by ct.transaction_date desc limit 1
+      )`,
     })
     .from(clients)
     .leftJoin(
@@ -39,6 +54,21 @@ export async function listDailyEntryRows(params: { branchId: number; collectorId
     )
     .where(and(...conditions))
     .orderBy(asc(clients.clientCode));
+
+  return rows.map((r) => {
+    let paymentStatus: "paid_on_day" | "paid_supplementary" | "due_today" | "overdue" | "not_due_yet";
+    if (r.lastPaymentThisWeek) {
+      const paidDay = getISODay(new Date(r.lastPaymentThisWeek + "T00:00:00Z"));
+      paymentStatus = paidDay === r.enrollmentDay ? "paid_on_day" : "paid_supplementary";
+    } else if (selectedDay === r.enrollmentDay) {
+      paymentStatus = "due_today";
+    } else if (selectedDay > r.enrollmentDay) {
+      paymentStatus = "overdue";
+    } else {
+      paymentStatus = "not_due_yet";
+    }
+    return { ...r, paymentStatus };
+  });
 }
 
 // Matches the source ledger's own C/F formula: B/F + New Savings - Savings

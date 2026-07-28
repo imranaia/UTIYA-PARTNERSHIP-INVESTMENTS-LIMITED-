@@ -45,6 +45,7 @@ export default async function BankReconciliationPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
+              <TableHead>Account</TableHead>
               {isSuperAdmin && <TableHead>Branch</TableHead>}
               <TableHead className="text-right">Bank Balance</TableHead>
               <TableHead className="text-right">Cash Balance</TableHead>
@@ -57,6 +58,7 @@ export default async function BankReconciliationPage() {
             {rows.map((r) => (
               <TableRow key={r.id}>
                 <TableCell>{r.reconDate}</TableCell>
+                <TableCell className="text-muted-foreground">{r.accountName || "Main"}</TableCell>
                 {isSuperAdmin && <TableCell className="text-muted-foreground">{r.branchName}</TableCell>}
                 <TableCell className="text-right">{money(r.bankBalance)}</TableCell>
                 <TableCell className="text-right">{money(r.cashBalance)}</TableCell>
@@ -69,7 +71,7 @@ export default async function BankReconciliationPage() {
             ))}
             {rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={isSuperAdmin ? 7 : 6} className="text-center text-muted-foreground">
+                <TableCell colSpan={isSuperAdmin ? 8 : 7} className="text-center text-muted-foreground">
                   No reconciliations recorded yet.
                 </TableCell>
               </TableRow>

@@ -70,6 +70,16 @@ export function ClientForm({
       </div>
 
       <div className="space-y-1.5">
+        <Label htmlFor="businessType">Trade / business (optional)</Label>
+        <Input id="businessType" name="businessType" placeholder="e.g. Provisions, Food Stuff" />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="businessLocation">Business location (optional)</Label>
+        <Input id="businessLocation" name="businessLocation" placeholder="e.g. Kubwa Village" />
+      </div>
+
+      <div className="space-y-1.5">
         <Label htmlFor="enrollmentDate">Enrollment date</Label>
         <Input id="enrollmentDate" name="enrollmentDate" type="date" defaultValue={today()} required />
         <p className="text-xs text-muted-foreground">Must be a weekday — this permanently fixes the client&apos;s code.</p>

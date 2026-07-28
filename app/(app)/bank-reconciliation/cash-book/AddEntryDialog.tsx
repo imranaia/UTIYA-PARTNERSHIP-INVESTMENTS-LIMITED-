@@ -49,6 +49,12 @@ export function AddEntryDialog({ branchId }: { branchId: number }) {
           </div>
 
           <div className="space-y-1.5">
+            <Label htmlFor="accountName">Account (optional)</Label>
+            <Input id="accountName" name="accountName" placeholder="e.g. Operations account, Investment account" />
+            <p className="text-xs text-muted-foreground">Leave blank if this branch doesn&apos;t split banked funds across sub-accounts.</p>
+          </div>
+
+          <div className="space-y-1.5">
             <Label htmlFor="details">Details</Label>
             <Input id="details" name="details" placeholder="e.g. Cash deposit" />
           </div>

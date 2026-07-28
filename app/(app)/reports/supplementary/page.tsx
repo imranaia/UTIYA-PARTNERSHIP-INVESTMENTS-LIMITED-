@@ -1,6 +1,7 @@
 import { format, startOfMonth } from "date-fns";
 import { requireModule } from "@/lib/auth/session";
 import { listActiveBranches } from "@/lib/db/branches";
+import { listLoanCollectorsForBranch } from "@/lib/db/users";
 import { listSupplementaryPayments } from "@/lib/db/supplementary";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Input } from "@/components/ui/input";
@@ -24,11 +25,11 @@ const nativeSelectClass =
 export default async function SupplementaryReportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ branchId?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ branchId?: string; from?: string; to?: string; collectorId?: string }>;
 }) {
   const user = await requireModule("reports", "view");
   const isSuperAdmin = user.roleKey === "super_admin";
-  const { branchId: branchIdParam, from: fromParam, to: toParam } = await searchParams;
+  const { branchId: branchIdParam, from: fromParam, to: toParam, collectorId: collectorIdParam } = await searchParams;
 
   const defaultFrom = format(startOfMonth(new Date()), "yyyy-MM-dd");
   const from = fromParam && !Number.isNaN(Date.parse(fromParam)) ? fromParam : defaultFrom;
@@ -36,8 +37,11 @@ export default async function SupplementaryReportPage({
 
   const branches = isSuperAdmin ? await listActiveBranches() : [];
   const branchId = isSuperAdmin ? (branchIdParam ? Number(branchIdParam) : null) : user.branchId;
+  const collectorId = collectorIdParam ? Number(collectorIdParam) : undefined;
 
-  const payments = await listSupplementaryPayments({ branchId, from, to });
+  const collectors = branchId ? await listLoanCollectorsForBranch(branchId) : [];
+
+  const payments = await listSupplementaryPayments({ branchId, from, to, collectorId });
   const earlyCount = payments.filter((p) => p.classification === "early").length;
   const lateCount = payments.filter((p) => p.classification === "late").length;
 
@@ -63,6 +67,26 @@ export default async function SupplementaryReportPage({
                 {branches.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {collectors.length > 0 && (
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground" htmlFor="collectorId">
+                Collector
+              </label>
+              <select
+                id="collectorId"
+                name="collectorId"
+                defaultValue={collectorId ? String(collectorId) : ""}
+                className={nativeSelectClass}
+              >
+                <option value="">All collectors</option>
+                {collectors.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.fullName}
                   </option>
                 ))}
               </select>

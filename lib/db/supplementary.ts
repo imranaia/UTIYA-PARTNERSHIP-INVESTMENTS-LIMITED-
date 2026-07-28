@@ -7,7 +7,13 @@ import { eq, and, gte, lte, sql } from "drizzle-orm";
 // assigned collection day (clients.enrollment_day, fixed at enrollment) —
 // derived automatically from the transaction date, never manually tagged.
 // "early" = collected before their scheduled weekday, "late" = after it.
-export async function listSupplementaryPayments(params: { branchId: number | null; from: string; to: string }) {
+export async function listSupplementaryPayments(params: {
+  branchId: number | null;
+  from: string;
+  to: string;
+  collectorId?: number;
+  groupName?: string;
+}) {
   const db = getDb();
   const conditions = [
     gte(clientTransactions.transactionDate, params.from),
@@ -18,6 +24,8 @@ export async function listSupplementaryPayments(params: { branchId: number | nul
     sql`extract(isodow from ${clientTransactions.transactionDate}) <> ${clients.enrollmentDay}`,
   ];
   if (params.branchId !== null) conditions.push(eq(clientTransactions.branchId, params.branchId));
+  if (params.collectorId) conditions.push(eq(clients.loanCollectorId, params.collectorId));
+  if (params.groupName) conditions.push(eq(clients.groupName, params.groupName));
 
   const rows = await db
     .select({
@@ -27,6 +35,7 @@ export async function listSupplementaryPayments(params: { branchId: number | nul
       clientId: clients.id,
       clientCode: clients.clientCode,
       clientName: clients.fullName,
+      groupName: clients.groupName,
       branchName: branches.name,
       assignedDay: clients.enrollmentDay,
       actualDay: sql<number>`extract(isodow from ${clientTransactions.transactionDate})::int`,

@@ -5,6 +5,7 @@ import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ClientStatusControl } from "./ClientStatusControl";
+import { RecordMaturityDialog } from "./RecordMaturityDialog";
 
 function money(n: string | number) {
   return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -25,12 +26,15 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2.5">
-        <h1 className="text-lg font-semibold">{client.fullName}</h1>
-        <Badge variant={client.status === "active" ? "default" : "secondary"} className="capitalize">
-          {client.status}
-        </Badge>
-        {canEdit && <ClientStatusControl clientId={client.id} status={client.status} />}
+      <div className="flex items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2.5">
+          <h1 className="text-lg font-semibold">{client.fullName}</h1>
+          <Badge variant={client.status === "active" ? "default" : "secondary"} className="capitalize">
+            {client.status}
+          </Badge>
+          {canEdit && <ClientStatusControl clientId={client.id} status={client.status} />}
+        </div>
+        {canEdit && <RecordMaturityDialog clientId={client.id} branchId={client.branchId} />}
       </div>
 
       <GlassPanel className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-3">
@@ -57,6 +61,14 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         <div>
           <p className="text-xs text-muted-foreground">Loan collector</p>
           <p className="font-medium">{client.loanCollectorName || "Unassigned"}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Trade / business</p>
+          <p className="font-medium">{client.businessType || "—"}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Business location</p>
+          <p className="font-medium">{client.businessLocation || "—"}</p>
         </div>
       </GlassPanel>
 

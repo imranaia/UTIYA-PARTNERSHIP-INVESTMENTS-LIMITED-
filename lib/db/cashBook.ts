@@ -1,16 +1,20 @@
 import "server-only";
 import { getDb } from "./client";
 import { cashBookEntries, users } from "./schema";
-import { eq, asc } from "drizzle-orm";
+import { eq, and, asc, isNull, sql } from "drizzle-orm";
 import { generatePaymentId } from "@/lib/services/paymentId";
 
-export async function listCashBookEntries(params: { branchId: number }) {
+export async function listCashBookEntries(params: { branchId: number; accountName?: string }) {
   const db = getDb();
+  const conditions = [eq(cashBookEntries.branchId, params.branchId)];
+  if (params.accountName) conditions.push(eq(cashBookEntries.accountName, params.accountName));
+
   return db
     .select({
       id: cashBookEntries.id,
       entryDate: cashBookEntries.entryDate,
       code: cashBookEntries.code,
+      accountName: cashBookEntries.accountName,
       details: cashBookEntries.details,
       refType: cashBookEntries.refType,
       refNumber: cashBookEntries.refNumber,
@@ -21,23 +25,32 @@ export async function listCashBookEntries(params: { branchId: number }) {
     })
     .from(cashBookEntries)
     .innerJoin(users, eq(users.id, cashBookEntries.recordedBy))
-    .where(eq(cashBookEntries.branchId, params.branchId))
+    .where(and(...conditions))
     .orderBy(asc(cashBookEntries.entryDate), asc(cashBookEntries.id));
 }
 
-// Recomputes every row's running balance from scratch, in chronological order.
-// Simpler and always correct regardless of insertion order (backdated entries),
-// and cheap at this system's scale (a branch's cash book grows by a handful of
-// rows per day).
+export async function listCashBookAccountNames(branchId: number) {
+  const db = getDb();
+  const rows = await db
+    .selectDistinct({ accountName: cashBookEntries.accountName })
+    .from(cashBookEntries)
+    .where(and(eq(cashBookEntries.branchId, branchId), sql`${cashBookEntries.accountName} is not null`));
+  return rows.map((r) => r.accountName).filter((a): a is string => !!a);
+}
+
+// Recomputes every row's running balance from scratch, in chronological order,
+// scoped per (branch, account) — each named sub-account keeps its own
+// independent running balance, same as the source cash book.
 //
 // Matches the source cash book's own formula (balance = prior - debit + credit,
 // i.e. a bank-statement view: debit is money paid out, credit is money received).
-async function recomputeRunningBalances(branchId: number) {
+async function recomputeRunningBalances(branchId: number, accountName: string | null) {
   const db = getDb();
+  const accountCondition = accountName === null ? isNull(cashBookEntries.accountName) : eq(cashBookEntries.accountName, accountName);
   const rows = await db
     .select({ id: cashBookEntries.id, debit: cashBookEntries.debit, credit: cashBookEntries.credit })
     .from(cashBookEntries)
-    .where(eq(cashBookEntries.branchId, branchId))
+    .where(and(eq(cashBookEntries.branchId, branchId), accountCondition))
     .orderBy(asc(cashBookEntries.entryDate), asc(cashBookEntries.id));
 
   let balance = 0;
@@ -51,6 +64,7 @@ export async function createCashBookEntry(data: {
   branchId: number;
   entryDate: string;
   code?: string;
+  accountName?: string;
   details?: string;
   refType?: string;
   debit: string;
@@ -68,6 +82,6 @@ export async function createCashBookEntry(data: {
     return row;
   });
 
-  await recomputeRunningBalances(data.branchId);
+  await recomputeRunningBalances(data.branchId, data.accountName ?? null);
   return entry;
 }

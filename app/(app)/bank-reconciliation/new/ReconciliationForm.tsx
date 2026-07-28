@@ -79,6 +79,14 @@ export function ReconciliationForm({
       </div>
 
       <div className="space-y-1.5">
+        <Label htmlFor="accountName">Account (optional)</Label>
+        <Input id="accountName" name="accountName" placeholder="e.g. Operations account, Investment account" />
+        <p className="text-xs text-muted-foreground">
+          Leave blank for the branch&apos;s single/main account. Auto-calculate only applies to the main account.
+        </p>
+      </div>
+
+      <div className="space-y-1.5">
         <Label htmlFor="bankBalance">Bank balance</Label>
         <Input
           id="bankBalance"

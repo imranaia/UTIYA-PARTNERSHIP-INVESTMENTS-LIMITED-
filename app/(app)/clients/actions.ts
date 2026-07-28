@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireModule } from "@/lib/auth/session";
 import { createClient, setClientStatus, CLIENT_STATUSES, type ClientStatus } from "@/lib/db/clients";
+import { createLoanMaturityEvent } from "@/lib/db/loanMaturity";
 import { InvalidEnrollmentDateError } from "@/lib/services/clientCode";
 import { logAction } from "@/lib/db/audit";
 
@@ -13,6 +14,8 @@ const clientSchema = z.object({
   phone: z.string().trim().max(30).optional().or(z.literal("")),
   address: z.string().trim().max(500).optional().or(z.literal("")),
   groupName: z.string().trim().max(80).optional().or(z.literal("")),
+  businessType: z.string().trim().max(80).optional().or(z.literal("")),
+  businessLocation: z.string().trim().max(120).optional().or(z.literal("")),
   enrollmentDate: z.string().refine((v) => !Number.isNaN(Date.parse(v)), "Invalid date"),
   branchId: z.coerce.number().int().positive().optional(),
   loanCollectorId: z.coerce.number().int().positive().optional(),
@@ -29,6 +32,8 @@ export async function createClientAction(_prevState: ClientFormState, formData: 
     phone: formData.get("phone"),
     address: formData.get("address"),
     groupName: formData.get("groupName"),
+    businessType: formData.get("businessType"),
+    businessLocation: formData.get("businessLocation"),
     enrollmentDate: formData.get("enrollmentDate"),
     branchId: formData.get("branchId") || undefined,
     loanCollectorId: formData.get("loanCollectorId") || undefined,
@@ -51,6 +56,8 @@ export async function createClientAction(_prevState: ClientFormState, formData: 
       phone: parsed.data.phone || undefined,
       address: parsed.data.address || undefined,
       groupName: parsed.data.groupName || undefined,
+      businessType: parsed.data.businessType || undefined,
+      businessLocation: parsed.data.businessLocation || undefined,
       enrollmentDate: new Date(parsed.data.enrollmentDate),
       loanCollectorId: parsed.data.loanCollectorId,
       openingSavings: parsed.data.openingSavings?.toString(),
@@ -95,4 +102,61 @@ export async function setClientStatusAction(clientId: number, status: string) {
   revalidatePath(`/clients/${clientId}`);
   revalidatePath("/clients");
   revalidatePath("/reports/dormant-clients");
+}
+
+const maturitySchema = z.object({
+  clientId: z.coerce.number().int().positive(),
+  branchId: z.coerce.number().int().positive(),
+  maturedAt: z.string().refine((v) => !Number.isNaN(Date.parse(v)), "Invalid date"),
+  renewed: z.enum(["yes", "no"]),
+  amountWithClient: z.coerce.number().nonnegative().optional(),
+  notes: z.string().trim().max(300).optional().or(z.literal("")),
+});
+
+export type MaturityFormState = { error: string | null };
+
+export async function recordLoanMaturityAction(
+  _prevState: MaturityFormState,
+  formData: FormData,
+): Promise<MaturityFormState> {
+  const user = await requireModule("clients", "edit");
+
+  const parsed = maturitySchema.safeParse({
+    clientId: formData.get("clientId"),
+    branchId: formData.get("branchId"),
+    maturedAt: formData.get("maturedAt"),
+    renewed: formData.get("renewed"),
+    amountWithClient: formData.get("amountWithClient") || undefined,
+    notes: formData.get("notes"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  if (user.roleKey !== "super_admin" && user.branchId !== parsed.data.branchId) {
+    return { error: "Not authorized for this branch." };
+  }
+
+  const event = await createLoanMaturityEvent({
+    clientId: parsed.data.clientId,
+    branchId: parsed.data.branchId,
+    maturedAt: parsed.data.maturedAt,
+    renewed: parsed.data.renewed === "yes",
+    amountWithClient: parsed.data.amountWithClient?.toString(),
+    notes: parsed.data.notes || undefined,
+    recordedBy: user.userId,
+  });
+
+  await logAction({
+    userId: user.userId,
+    branchId: parsed.data.branchId,
+    action: "client.loan_maturity",
+    entityType: "loan_maturity_events",
+    entityId: event.id,
+    after: { renewed: event.renewed },
+  });
+
+  revalidatePath(`/clients/${parsed.data.clientId}`);
+  revalidatePath("/reports/loan-maturity");
+  return { error: null };
 }

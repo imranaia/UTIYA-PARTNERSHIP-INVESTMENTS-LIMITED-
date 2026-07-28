@@ -11,6 +11,7 @@ export async function listReconciliations(params: { branchId: number | null }) {
     .select({
       id: bankCashReconciliation.id,
       reconDate: bankCashReconciliation.reconDate,
+      accountName: bankCashReconciliation.accountName,
       bankBalance: bankCashReconciliation.bankBalance,
       cashBalance: bankCashReconciliation.cashBalance,
       bookBalance: bankCashReconciliation.bookBalance,
@@ -27,13 +28,17 @@ export async function listReconciliations(params: { branchId: number | null }) {
 }
 
 // Most recent reconciliation strictly before a date — used as a period's
-// opening (b/f) treasury balance.
+// opening (b/f) treasury balance. Scoped to the default (undivided) account —
+// branches that split into named sub-accounts manage those separately via
+// the Cash Book / Bank Reconciliation account filter.
 export async function getReconciliationBefore(branchId: number, date: string) {
   const db = getDb();
   const [row] = await db
     .select()
     .from(bankCashReconciliation)
-    .where(and(eq(bankCashReconciliation.branchId, branchId), lt(bankCashReconciliation.reconDate, date)))
+    .where(
+      and(eq(bankCashReconciliation.branchId, branchId), eq(bankCashReconciliation.accountName, ""), lt(bankCashReconciliation.reconDate, date)),
+    )
     .orderBy(desc(bankCashReconciliation.reconDate))
     .limit(1);
   return row ?? null;
@@ -47,7 +52,9 @@ export async function getReconciliationOnOrBefore(branchId: number, date: string
   const [row] = await db
     .select()
     .from(bankCashReconciliation)
-    .where(and(eq(bankCashReconciliation.branchId, branchId), lte(bankCashReconciliation.reconDate, date)))
+    .where(
+      and(eq(bankCashReconciliation.branchId, branchId), eq(bankCashReconciliation.accountName, ""), lte(bankCashReconciliation.reconDate, date)),
+    )
     .orderBy(desc(bankCashReconciliation.reconDate))
     .limit(1);
   return row ?? null;
@@ -99,6 +106,7 @@ export async function getExpectedBookBalance(branchId: number, asOfDate: string)
 export async function createReconciliation(data: {
   branchId: number;
   reconDate: string;
+  accountName?: string;
   bankBalance: string;
   cashBalance: string;
   bookBalance: string;
@@ -107,12 +115,13 @@ export async function createReconciliation(data: {
 }) {
   const db = getDb();
   const variance = (Number(data.bankBalance) + Number(data.cashBalance) - Number(data.bookBalance)).toFixed(2);
+  const accountName = data.accountName ?? "";
 
   const [recon] = await db
     .insert(bankCashReconciliation)
-    .values({ ...data, variance })
+    .values({ ...data, accountName, variance })
     .onConflictDoUpdate({
-      target: [bankCashReconciliation.branchId, bankCashReconciliation.reconDate],
+      target: [bankCashReconciliation.branchId, bankCashReconciliation.reconDate, bankCashReconciliation.accountName],
       set: {
         bankBalance: data.bankBalance,
         cashBalance: data.cashBalance,

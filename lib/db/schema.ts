@@ -122,6 +122,10 @@ export const clients = pgTable(
     enrollmentDate: date("enrollment_date").notNull(),
     loanCollectorId: integer("loan_collector_id").references(() => users.id),
     status: varchar("status", { length: 20 }).notNull().default("active"),
+    // Business/trade profile — matches the source ledger's own "Supervision
+    // Dept Report" (Project + Location columns), captured at enrollment.
+    businessType: varchar("business_type", { length: 80 }),
+    businessLocation: varchar("business_location", { length: 120 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -218,6 +222,28 @@ export const clientDefaults = pgTable("client_defaults", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ===================== Loan maturity / renewal tracking =====================
+// Matches the source ledger's own "Returning Clients of the Day not Renewing
+// their Loans" section — recorded when a client's loan cycle ends, capturing
+// whether they took a new loan (renewed) or not.
+export const loanMaturityEvents = pgTable("loan_maturity_events", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id")
+    .notNull()
+    .references(() => clients.id),
+  branchId: integer("branch_id")
+    .notNull()
+    .references(() => branches.id),
+  maturedAt: date("matured_at").notNull(),
+  renewed: boolean("renewed").notNull().default(false),
+  amountWithClient: numeric("amount_with_client", { precision: 14, scale: 2 }),
+  notes: text("notes"),
+  recordedBy: integer("recorded_by")
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ===================== Expenses =====================
 export const expenseCategories = pgTable("expense_categories", {
   id: serial("id").primaryKey(),
@@ -254,6 +280,10 @@ export const cashBookEntries = pgTable("cash_book_entries", {
     .references(() => branches.id),
   entryDate: date("entry_date").notNull(),
   code: varchar("code", { length: 20 }),
+  // Which named bank sub-account this entry belongs to (e.g. "Operations
+  // account", "Investment account") — the source ledger splits banked
+  // amounts across two such accounts. Null means a single undivided account.
+  accountName: varchar("account_name", { length: 60 }),
   details: text("details"),
   refType: varchar("ref_type", { length: 10 }), // OR | PV | CQ
   refNumber: varchar("ref_number", { length: 30 }),
@@ -274,6 +304,9 @@ export const bankCashReconciliation = pgTable(
       .notNull()
       .references(() => branches.id),
     reconDate: date("recon_date").notNull(),
+    // Same sub-account concept as cash_book_entries.account_name — null means
+    // a single undivided account for that branch/day.
+    accountName: varchar("account_name", { length: 60 }).notNull().default(""),
     bankBalance: numeric("bank_balance", { precision: 14, scale: 2 }).notNull(),
     cashBalance: numeric("cash_balance", { precision: 14, scale: 2 }).notNull(),
     bookBalance: numeric("book_balance", { precision: 14, scale: 2 }).notNull(),
@@ -284,7 +317,7 @@ export const bankCashReconciliation = pgTable(
       .references(() => users.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("branch_recon_date_unique").on(t.branchId, t.reconDate)],
+  (t) => [uniqueIndex("branch_recon_date_unique").on(t.branchId, t.reconDate, t.accountName)],
 );
 
 // ===================== General ledger (Week Summary buckets) =====================
