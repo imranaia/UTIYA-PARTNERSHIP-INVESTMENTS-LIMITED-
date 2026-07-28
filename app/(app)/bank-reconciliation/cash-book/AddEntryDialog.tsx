@@ -75,11 +75,11 @@ export function AddEntryDialog({ branchId }: { branchId: number }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="debit">Debit (in)</Label>
+              <Label htmlFor="debit">Debit (out)</Label>
               <Input id="debit" name="debit" type="number" min="0" step="0.01" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="credit">Credit (out)</Label>
+              <Label htmlFor="credit">Credit (in)</Label>
               <Input id="credit" name="credit" type="number" min="0" step="0.01" />
             </div>
           </div>

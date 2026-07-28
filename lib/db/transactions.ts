@@ -39,6 +39,8 @@ export async function listDailyEntryRows(params: { branchId: number; collectorId
     .orderBy(asc(clients.clientCode));
 }
 
+// Matches the source ledger's own C/F formula: B/F + New Savings - Savings
+// Recall + Collateral Transfer In - Collateral Transfer Out.
 async function recomputeSavingsForward(tx: DbTx, clientId: number, fromDate: string) {
   const [prior] = await tx
     .select({ cf: clientTransactions.savingsBalanceCf })
@@ -52,6 +54,8 @@ async function recomputeSavingsForward(tx: DbTx, clientId: number, fromDate: str
       id: clientTransactions.id,
       newSavings: clientTransactions.newSavings,
       savingsRecall: clientTransactions.savingsRecall,
+      collateralTransferIn: clientTransactions.collateralTransferIn,
+      collateralTransferOut: clientTransactions.collateralTransferOut,
     })
     .from(clientTransactions)
     .where(and(eq(clientTransactions.clientId, clientId), gte(clientTransactions.transactionDate, fromDate)))
@@ -59,7 +63,13 @@ async function recomputeSavingsForward(tx: DbTx, clientId: number, fromDate: str
 
   let bf = prior?.cf ?? "0";
   for (const row of rows) {
-    const cf = (Number(bf) + Number(row.newSavings) - Number(row.savingsRecall)).toFixed(2);
+    const cf = (
+      Number(bf) +
+      Number(row.newSavings) -
+      Number(row.savingsRecall) +
+      Number(row.collateralTransferIn) -
+      Number(row.collateralTransferOut)
+    ).toFixed(2);
     await tx
       .update(clientTransactions)
       .set({ savingsBalanceBf: bf, savingsBalanceCf: cf, updatedAt: new Date() })

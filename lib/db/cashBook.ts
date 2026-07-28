@@ -28,6 +28,9 @@ export async function listCashBookEntries(params: { branchId: number }) {
 // Simpler and always correct regardless of insertion order (backdated entries),
 // and cheap at this system's scale (a branch's cash book grows by a handful of
 // rows per day).
+//
+// Matches the source cash book's own formula (balance = prior - debit + credit,
+// i.e. a bank-statement view: debit is money paid out, credit is money received).
 async function recomputeRunningBalances(branchId: number) {
   const db = getDb();
   const rows = await db
@@ -38,7 +41,7 @@ async function recomputeRunningBalances(branchId: number) {
 
   let balance = 0;
   for (const row of rows) {
-    balance += Number(row.debit) - Number(row.credit);
+    balance += Number(row.credit) - Number(row.debit);
     await db.update(cashBookEntries).set({ runningBalance: balance.toFixed(2) }).where(eq(cashBookEntries.id, row.id));
   }
 }
