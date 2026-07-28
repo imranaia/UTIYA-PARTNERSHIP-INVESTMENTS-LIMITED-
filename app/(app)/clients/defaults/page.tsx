@@ -25,7 +25,7 @@ export default async function ClientDefaultsPage({ searchParams }: { searchParam
   const branchId = isSuperAdmin ? (branchIdParam ? Number(branchIdParam) : (branches[0]?.id ?? null)) : user.branchId;
 
   const [rows, clientOptions] = await Promise.all([
-    listDefaults({ branchId: isSuperAdmin && !branchIdParam ? null : branchId }),
+    listDefaults({ branchId }),
     branchId ? listActiveClientsForSelect(branchId) : Promise.resolve([]),
   ]);
 
@@ -43,8 +43,7 @@ export default async function ClientDefaultsPage({ searchParams }: { searchParam
               <label className="text-xs text-muted-foreground" htmlFor="branchId">
                 Branch
               </label>
-              <select id="branchId" name="branchId" defaultValue={branchIdParam ?? ""} className={nativeSelectClass}>
-                <option value="">All branches</option>
+              <select id="branchId" name="branchId" defaultValue={branchId ? String(branchId) : ""} className={nativeSelectClass}>
                 {branches.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}

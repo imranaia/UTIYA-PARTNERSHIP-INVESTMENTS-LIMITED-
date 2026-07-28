@@ -8,7 +8,6 @@ import { logAction } from "@/lib/db/audit";
 
 const entrySchema = z.object({
   entryDate: z.string().refine((v) => !Number.isNaN(Date.parse(v)), "Invalid date"),
-  code: z.string().trim().max(20).optional().or(z.literal("")),
   details: z.string().trim().max(300).optional().or(z.literal("")),
   refType: z.enum(["OR", "PV", "CQ"]).optional().or(z.literal("")),
   refNumber: z.string().trim().max(30).optional().or(z.literal("")),
@@ -27,9 +26,8 @@ export async function createCashBookEntryAction(
 
   const parsed = entrySchema.safeParse({
     entryDate: formData.get("entryDate"),
-    code: formData.get("code"),
     details: formData.get("details"),
-    refType: formData.get("refType"),
+    refType: formData.get("refType") || undefined,
     refNumber: formData.get("refNumber"),
     debit: formData.get("debit"),
     credit: formData.get("credit"),
@@ -51,7 +49,6 @@ export async function createCashBookEntryAction(
   const entry = await createCashBookEntry({
     branchId,
     entryDate: parsed.data.entryDate,
-    code: parsed.data.code || undefined,
     details: parsed.data.details || undefined,
     refType: parsed.data.refType || undefined,
     refNumber: parsed.data.refNumber || undefined,
