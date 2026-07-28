@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
+import { BookOpen, CalendarClock } from "lucide-react";
 import { requireModule } from "@/lib/auth/session";
 import { listActiveBranches } from "@/lib/db/branches";
 import {
@@ -86,12 +86,20 @@ export default async function ReportsPage({
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold">Reports</h1>
-        <Button asChild variant="secondary" size="sm" className="gap-1.5">
-          <Link href="/reports/week-summary">
-            <BookOpen className="size-4" />
-            Week Summary
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="secondary" size="sm" className="gap-1.5">
+            <Link href="/reports/supplementary">
+              <CalendarClock className="size-4" />
+              Supplementary
+            </Link>
+          </Button>
+          <Button asChild variant="secondary" size="sm" className="gap-1.5">
+            <Link href="/reports/week-summary">
+              <BookOpen className="size-4" />
+              Week Summary
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <GlassPanel className="p-4">

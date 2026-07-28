@@ -4,7 +4,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireModule } from "@/lib/auth/session";
-import { createReconciliation } from "@/lib/db/bankReconciliation";
+import { createReconciliation, getExpectedBookBalance } from "@/lib/db/bankReconciliation";
 import { logAction } from "@/lib/db/audit";
 
 const reconSchema = z.object({
@@ -62,4 +62,25 @@ export async function createReconciliationAction(
 
   revalidatePath("/bank-reconciliation");
   redirect("/bank-reconciliation");
+}
+
+// Lets the form auto-fill "Book balance" from what the system already knows
+// (prior counted balance + everything recorded since) instead of the admin
+// calculating it by hand — they can still overwrite the value before saving.
+export async function getExpectedBookBalanceAction(input: {
+  branchId?: number;
+  reconDate: string;
+}): Promise<{ value: string | null; error: string | null }> {
+  const user = await requireModule("bank_reconciliation", "create");
+
+  const branchId = user.roleKey === "super_admin" ? input.branchId : (user.branchId ?? undefined);
+  if (!branchId) {
+    return { value: null, error: "Select a branch first." };
+  }
+  if (!input.reconDate || Number.isNaN(Date.parse(input.reconDate))) {
+    return { value: null, error: "Invalid date." };
+  }
+
+  const value = await getExpectedBookBalance(branchId, input.reconDate);
+  return { value, error: null };
 }

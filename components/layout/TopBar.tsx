@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { Moon, Sun, LogOut, KeyRound } from "lucide-react";
+import { Moon, Sun, LogOut, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -78,9 +78,9 @@ export function TopBar({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/change-password">
-                <KeyRound className="size-4" />
-                Change password
+              <Link href="/profile">
+                <UserCircle className="size-4" />
+                Profile
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

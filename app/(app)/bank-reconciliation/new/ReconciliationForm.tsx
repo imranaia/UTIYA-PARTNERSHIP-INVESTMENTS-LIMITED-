@@ -1,11 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
+import { toast } from "sonner";
+import { Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createReconciliationAction, type ReconciliationFormState } from "../actions";
+import { createReconciliationAction, getExpectedBookBalanceAction, type ReconciliationFormState } from "../actions";
 
 const initialState: ReconciliationFormState = { error: null };
 
@@ -24,15 +26,32 @@ export function ReconciliationForm({
   const [bankBalance, setBankBalance] = useState("");
   const [cashBalance, setCashBalance] = useState("");
   const [bookBalance, setBookBalance] = useState("");
+  const [reconDate, setReconDate] = useState(today());
+  const [branchId, setBranchId] = useState("");
+  const [autoCalcPending, startAutoCalc] = useTransition();
 
   const variance = Number(bankBalance || 0) + Number(cashBalance || 0) - Number(bookBalance || 0);
+
+  function autoCalculateBookBalance() {
+    startAutoCalc(async () => {
+      const result = await getExpectedBookBalanceAction({
+        branchId: branchId ? Number(branchId) : undefined,
+        reconDate,
+      });
+      if (result.error) {
+        toast.error(result.error);
+      } else if (result.value !== null) {
+        setBookBalance(result.value);
+      }
+    });
+  }
 
   return (
     <form action={formAction} className="space-y-4">
       {showBranchSelect && (
         <div className="space-y-1.5">
           <Label htmlFor="branchId">Branch</Label>
-          <Select name="branchId" required>
+          <Select name="branchId" required onValueChange={setBranchId}>
             <SelectTrigger id="branchId" className="w-full">
               <SelectValue placeholder="Select a branch" />
             </SelectTrigger>
@@ -49,7 +68,14 @@ export function ReconciliationForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="reconDate">Date</Label>
-        <Input id="reconDate" name="reconDate" type="date" defaultValue={today()} required />
+        <Input
+          id="reconDate"
+          name="reconDate"
+          type="date"
+          value={reconDate}
+          onChange={(e) => setReconDate(e.target.value)}
+          required
+        />
       </div>
 
       <div className="space-y-1.5">
@@ -79,7 +105,18 @@ export function ReconciliationForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="bookBalance">Book balance</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="bookBalance">Book balance</Label>
+          <button
+            type="button"
+            onClick={autoCalculateBookBalance}
+            disabled={autoCalcPending}
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
+          >
+            <Wand2 className="size-3" />
+            {autoCalcPending ? "Calculating…" : "Auto-calculate"}
+          </button>
+        </div>
         <Input
           id="bookBalance"
           name="bookBalance"
@@ -89,6 +126,9 @@ export function ReconciliationForm({
           value={bookBalance}
           onChange={(e) => setBookBalance(e.target.value)}
         />
+        <p className="text-xs text-muted-foreground">
+          Calculated from your last reconciliation plus everything recorded since — adjust if your physical count differs.
+        </p>
       </div>
 
       <div className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm">

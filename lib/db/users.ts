@@ -49,10 +49,13 @@ export async function getUserProfile(userId: number) {
   const db = getDb();
   const [row] = await db
     .select({
+      username: users.username,
       fullName: users.fullName,
+      phone: users.phone,
       roleName: roles.name,
       roleKey: roles.key,
       branchName: branches.name,
+      lastLoginAt: users.lastLoginAt,
     })
     .from(users)
     .innerJoin(roles, eq(roles.id, users.roleId))

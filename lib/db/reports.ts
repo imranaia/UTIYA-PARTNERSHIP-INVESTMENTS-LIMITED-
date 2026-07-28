@@ -1,7 +1,7 @@
 import "server-only";
 import { getDb } from "./client";
 import { branches, clients, clientTransactions, expenses, clientDefaults } from "./schema";
-import { eq, and, sql, asc, gte, lte } from "drizzle-orm";
+import { eq, and, sql, asc, desc, gte, lte } from "drizzle-orm";
 
 export async function getPortfolioSummary(branchId: number | null) {
   const db = getDb();
@@ -141,6 +141,31 @@ export async function getExpenseTotalForRange(params: { branchId: number; from: 
       and(eq(expenses.branchId, params.branchId), gte(expenses.expenseDate, params.from), lte(expenses.expenseDate, params.to)),
     );
   return row?.total ?? "0";
+}
+
+// Most recent client payments across a branch (or all branches for a super
+// admin), newest first — feeds the Dashboard's activity feed.
+export async function getRecentTransactions(params: { branchId: number | null; limit: number }) {
+  const db = getDb();
+  return db
+    .select({
+      id: clientTransactions.id,
+      paymentId: clientTransactions.paymentId,
+      transactionDate: clientTransactions.transactionDate,
+      clientName: clients.fullName,
+      clientCode: clients.clientCode,
+      branchName: branches.name,
+      loanDisbursement: clientTransactions.loanDisbursement,
+      loanRecovery: clientTransactions.loanRecovery,
+      newSavings: clientTransactions.newSavings,
+      createdAt: clientTransactions.createdAt,
+    })
+    .from(clientTransactions)
+    .innerJoin(clients, eq(clients.id, clientTransactions.clientId))
+    .innerJoin(branches, eq(branches.id, clientTransactions.branchId))
+    .where(params.branchId !== null ? eq(clientTransactions.branchId, params.branchId) : undefined)
+    .orderBy(desc(clientTransactions.createdAt))
+    .limit(params.limit);
 }
 
 // Two grouped queries merged in application code — a single query joining both
