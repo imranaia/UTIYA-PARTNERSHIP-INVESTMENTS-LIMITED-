@@ -127,13 +127,13 @@ async function main() {
     }
   }
 
-  console.log("Seeding head office branch...");
-  const [headOffice] = await db
+  console.log("Seeding Abuja branch...");
+  const [abuja] = await db
     .insert(branches)
-    .values({ code: "HQ", name: "Head Office", isActive: true })
+    .values({ code: "ABJ", name: "Abuja Branch", isActive: true })
     .onConflictDoNothing({ target: branches.code })
     .returning();
-  const branch = headOffice ?? (await db.select().from(branches).where(eq(branches.code, "HQ")))[0];
+  const branch = abuja ?? (await db.select().from(branches).where(eq(branches.code, "ABJ")))[0];
   await db.insert(clientSequences).values({ branchId: branch.id, lastSeq: 0 }).onConflictDoNothing();
 
   console.log("Seeding expense categories...");
