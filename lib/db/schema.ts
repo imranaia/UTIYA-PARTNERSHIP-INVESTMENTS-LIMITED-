@@ -209,6 +209,9 @@ export const clientDefaults = pgTable("client_defaults", {
   defaultedAt: date("defaulted_at").notNull(),
   reason: text("reason"),
   resolvedAt: date("resolved_at"),
+  // repaid | written_off | deceased — how the default was actually closed out,
+  // matching the source ledger's own per-row annotations ("W/F", "Deceased").
+  resolutionType: varchar("resolution_type", { length: 20 }),
   recordedBy: integer("recorded_by")
     .notNull()
     .references(() => users.id),

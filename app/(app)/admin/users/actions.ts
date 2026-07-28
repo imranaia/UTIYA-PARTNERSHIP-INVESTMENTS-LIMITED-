@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/session";
+import { requireModule, getSession } from "@/lib/auth/session";
 import { createUser, resetUserPassword, setUserActive, usernameExists } from "@/lib/db/users";
 import { getRole } from "@/lib/db/roles";
 import { logAction } from "@/lib/db/audit";
@@ -87,7 +87,8 @@ export async function createUserAction(_prevState: UserFormState, formData: Form
 
 export async function resetPasswordAction(userId: number): Promise<UserFormState> {
   const sessionUser = await requireModule("users", "edit");
-  const { user, tempPassword } = await resetUserPassword(userId);
+  const isSelf = userId === sessionUser.userId;
+  const { user, tempPassword } = await resetUserPassword(userId, isSelf);
   await logAction({
     userId: sessionUser.userId,
     branchId: sessionUser.branchId,
@@ -95,6 +96,17 @@ export async function resetPasswordAction(userId: number): Promise<UserFormState
     entityType: "user",
     entityId: user.id,
   });
+
+  // Resetting your own password bumps your own token_version, which would
+  // otherwise invalidate this very session on the next request (before the
+  // temp-password dialog ever renders) and boot you out mid-action. Re-seal
+  // the session with the new token_version so it stays valid.
+  if (isSelf) {
+    const session = await getSession();
+    session.user = { ...sessionUser, tokenVersion: user.tokenVersion };
+    await session.save();
+  }
+
   revalidatePath("/admin/users");
   return { error: null, tempPassword };
 }

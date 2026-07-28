@@ -3,6 +3,13 @@ import { getDb } from "./client";
 import { clientDefaults, clients, users } from "./schema";
 import { eq, and, desc, isNull } from "drizzle-orm";
 
+export const RESOLUTION_TYPES = [
+  { key: "repaid", label: "Repaid" },
+  { key: "written_off", label: "Written Off" },
+  { key: "deceased", label: "Deceased" },
+] as const;
+export type ResolutionType = (typeof RESOLUTION_TYPES)[number]["key"];
+
 export async function listDefaults(params: { branchId: number | null }) {
   const db = getDb();
   return db
@@ -15,6 +22,7 @@ export async function listDefaults(params: { branchId: number | null }) {
       defaultedAt: clientDefaults.defaultedAt,
       reason: clientDefaults.reason,
       resolvedAt: clientDefaults.resolvedAt,
+      resolutionType: clientDefaults.resolutionType,
       recordedByName: users.fullName,
     })
     .from(clientDefaults)
@@ -37,11 +45,11 @@ export async function createDefault(data: {
   return row;
 }
 
-export async function resolveDefault(id: number) {
+export async function resolveDefault(id: number, resolutionType: ResolutionType) {
   const db = getDb();
   const [row] = await db
     .update(clientDefaults)
-    .set({ resolvedAt: new Date().toISOString().slice(0, 10) })
+    .set({ resolvedAt: new Date().toISOString().slice(0, 10), resolutionType })
     .where(and(eq(clientDefaults.id, id), isNull(clientDefaults.resolvedAt)))
     .returning();
   return row;

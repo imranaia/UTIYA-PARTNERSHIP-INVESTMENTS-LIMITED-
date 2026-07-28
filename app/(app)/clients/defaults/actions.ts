@@ -3,9 +3,11 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireModule } from "@/lib/auth/session";
-import { createDefault, resolveDefault } from "@/lib/db/clientDefaults";
+import { createDefault, resolveDefault, RESOLUTION_TYPES, type ResolutionType } from "@/lib/db/clientDefaults";
 import { filterClientIdsInBranch } from "@/lib/db/clients";
 import { logAction } from "@/lib/db/audit";
+
+const resolutionTypeKeys = RESOLUTION_TYPES.map((r) => r.key) as [string, ...string[]];
 
 const defaultSchema = z.object({
   clientId: z.coerce.number().int().positive(),
@@ -63,9 +65,10 @@ export async function createDefaultAction(_prevState: DefaultFormState, formData
   return { error: null };
 }
 
-export async function resolveDefaultAction(id: number) {
+export async function resolveDefaultAction(id: number, resolutionType: string) {
   const user = await requireModule("clients", "edit");
-  const row = await resolveDefault(id);
+  if (!resolutionTypeKeys.includes(resolutionType)) return;
+  const row = await resolveDefault(id, resolutionType as ResolutionType);
   if (row) {
     await logAction({
       userId: user.userId,
@@ -73,6 +76,7 @@ export async function resolveDefaultAction(id: number) {
       action: "client_default.resolve",
       entityType: "client_defaults",
       entityId: row.id,
+      after: { resolutionType },
     });
   }
   revalidatePath("/clients/defaults");

@@ -1,7 +1,9 @@
 import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { listActiveBranches } from "@/lib/db/branches";
 import { listActiveClientsForSelect } from "@/lib/db/clients";
-import { listDefaults } from "@/lib/db/clientDefaults";
+import { listDefaults, RESOLUTION_TYPES } from "@/lib/db/clientDefaults";
+
+const RESOLUTION_LABELS = Object.fromEntries(RESOLUTION_TYPES.map((r) => [r.key, r.label]));
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -78,7 +80,11 @@ export default async function ClientDefaultsPage({ searchParams }: { searchParam
                 <TableCell className="text-right">{money(r.defaultedAmount)}</TableCell>
                 <TableCell className="max-w-xs truncate text-muted-foreground">{r.reason || "—"}</TableCell>
                 <TableCell>
-                  <Badge variant={r.resolvedAt ? "secondary" : "destructive"}>{r.resolvedAt ? "Resolved" : "Open"}</Badge>
+                  <Badge variant={r.resolvedAt ? "secondary" : "destructive"}>
+                    {r.resolvedAt
+                      ? `Resolved${r.resolutionType ? ` (${RESOLUTION_LABELS[r.resolutionType] ?? r.resolutionType})` : ""}`
+                      : "Open"}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{r.recordedByName}</TableCell>
                 {canEdit && <TableCell>{!r.resolvedAt && <ResolveButton id={r.id} />}</TableCell>}

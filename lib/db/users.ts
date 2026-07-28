@@ -152,7 +152,12 @@ export async function createUser(data: {
   return { user, tempPassword };
 }
 
-export async function resetUserPassword(userId: number) {
+// `forSelf` skips the forced-change-on-next-login flag: the admin is seeing
+// the temp password directly in this same request, so there's nothing left
+// to force — and leaving it set would otherwise redirect them to
+// /change-password on the very next page load, potentially before they've
+// had a chance to read/copy the password.
+export async function resetUserPassword(userId: number, forSelf = false) {
   const db = getDb();
   const tempPassword = generateTempPassword();
   const passwordHash = await hashPassword(tempPassword);
@@ -160,7 +165,7 @@ export async function resetUserPassword(userId: number) {
     .update(users)
     .set({
       passwordHash,
-      mustChangePassword: true,
+      mustChangePassword: !forSelf,
       tokenVersion: sql`${users.tokenVersion} + 1`,
       failedLoginAttempts: 0,
       lockedUntil: null,

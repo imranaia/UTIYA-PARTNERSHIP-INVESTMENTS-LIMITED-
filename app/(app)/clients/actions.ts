@@ -4,7 +4,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireModule } from "@/lib/auth/session";
-import { createClient } from "@/lib/db/clients";
+import { createClient, setClientStatus, CLIENT_STATUSES, type ClientStatus } from "@/lib/db/clients";
 import { InvalidEnrollmentDateError } from "@/lib/services/clientCode";
 import { logAction } from "@/lib/db/audit";
 
@@ -74,4 +74,25 @@ export async function createClientAction(_prevState: ClientFormState, formData: 
 
   revalidatePath("/clients");
   redirect(`/clients/${client.id}`);
+}
+
+export async function setClientStatusAction(clientId: number, status: string) {
+  const user = await requireModule("clients", "edit");
+  if (!CLIENT_STATUSES.includes(status as ClientStatus)) return;
+
+  const client = await setClientStatus(clientId, status as ClientStatus);
+  if (client) {
+    await logAction({
+      userId: user.userId,
+      branchId: client.branchId,
+      action: "client.set_status",
+      entityType: "client",
+      entityId: client.id,
+      after: { status },
+    });
+  }
+
+  revalidatePath(`/clients/${clientId}`);
+  revalidatePath("/clients");
+  revalidatePath("/reports/dormant-clients");
 }

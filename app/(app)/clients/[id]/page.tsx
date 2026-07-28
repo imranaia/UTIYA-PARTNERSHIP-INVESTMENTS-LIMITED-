@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
-import { requireModule } from "@/lib/auth/session";
+import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { getClientById, listClientTransactions } from "@/lib/db/clients";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ClientStatusControl } from "./ClientStatusControl";
 
 function money(n: string | number) {
   return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -11,6 +12,7 @@ function money(n: string | number) {
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireModule("clients", "view");
+  const { canEdit } = await getModulePermission("clients");
   const { id } = await params;
   const clientId = Number(id);
   if (!Number.isInteger(clientId)) notFound();
@@ -28,6 +30,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         <Badge variant={client.status === "active" ? "default" : "secondary"} className="capitalize">
           {client.status}
         </Badge>
+        {canEdit && <ClientStatusControl clientId={client.id} status={client.status} />}
       </div>
 
       <GlassPanel className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-3">
