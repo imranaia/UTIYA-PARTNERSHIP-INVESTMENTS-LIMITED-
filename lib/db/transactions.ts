@@ -3,6 +3,7 @@ import { getDb } from "./client";
 import { clients, clientTransactions } from "./schema";
 import { eq, and, asc, desc, lt, gte, sql } from "drizzle-orm";
 import type { DbTx } from "./client";
+import { generatePaymentId } from "@/lib/services/paymentId";
 
 export async function listDailyEntryRows(params: { branchId: number; collectorId?: number; date: string }) {
   const db = getDb();
@@ -15,6 +16,7 @@ export async function listDailyEntryRows(params: { branchId: number; collectorId
       clientCode: clients.clientCode,
       fullName: clients.fullName,
       groupName: clients.groupName,
+      paymentId: clientTransactions.paymentId,
       loanDisbursement: clientTransactions.loanDisbursement,
       loanRecovery: clientTransactions.loanRecovery,
       profitInterest: clientTransactions.profitInterest,
@@ -95,9 +97,17 @@ export async function saveTransactionRow(data: {
 }) {
   const db = getDb();
   await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({ id: clientTransactions.id })
+      .from(clientTransactions)
+      .where(and(eq(clientTransactions.clientId, data.clientId), eq(clientTransactions.transactionDate, data.transactionDate)));
+
+    const paymentId = existing ? undefined : await generatePaymentId(tx, data.branchId, new Date(data.transactionDate));
+
     await tx
       .insert(clientTransactions)
       .values({
+        paymentId,
         clientId: data.clientId,
         branchId: data.branchId,
         transactionDate: data.transactionDate,

@@ -13,6 +13,7 @@ type Row = {
   clientCode: string;
   fullName: string;
   groupName: string | null;
+  paymentId: string | null;
   loanDisbursement: string | null;
   loanRecovery: string | null;
   profitInterest: string | null;
@@ -59,6 +60,7 @@ export function DailyTransactionsTable({
           <TableHeader>
             <TableRow>
               <TableHead>Client</TableHead>
+              <TableHead>Payment ID</TableHead>
               <TableHead className="text-right">Savings B/F</TableHead>
               <TableHead className="text-right">Loan Disb.</TableHead>
               <TableHead className="text-right">Loan Recovery</TableHead>
@@ -81,6 +83,7 @@ export function DailyTransactionsTable({
                     {r.groupName ? ` · ${r.groupName}` : ""}
                   </div>
                 </TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">{r.paymentId ?? "—"}</TableCell>
                 <TableCell className="text-right text-muted-foreground">
                   {Number(r.savingsBalanceBf).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </TableCell>
@@ -179,7 +182,7 @@ export function DailyTransactionsTable({
             ))}
             {rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={11} className="text-center text-muted-foreground">
+                <TableCell colSpan={12} className="text-center text-muted-foreground">
                   No active clients for this branch/collector.
                 </TableCell>
               </TableRow>

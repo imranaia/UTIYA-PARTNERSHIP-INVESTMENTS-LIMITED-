@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireModule } from "@/lib/auth/session";
 import { saveTransactionRow, isEmptyRow } from "@/lib/db/transactions";
 import { filterClientIdsInBranch } from "@/lib/db/clients";
+import { setDutyAssignment, DUTY_POSTS } from "@/lib/db/dutyAssignments";
 import { logAction } from "@/lib/db/audit";
 
 export type DailyTransactionsState = { error: string | null; savedCount: number };
@@ -95,4 +96,41 @@ export async function saveDailyTransactionsAction(
 
   revalidatePath("/transactions");
   return { error: savedCount === 0 ? "No changes to save." : null, savedCount };
+}
+
+const dutyPostKeys = DUTY_POSTS.map((p) => p.key) as [string, ...string[]];
+const dutySchema = z.object({
+  branchId: z.coerce.number().int().positive(),
+  date: z.string().refine((v) => !Number.isNaN(Date.parse(v)), "Invalid date"),
+  dutyPost: z.enum(dutyPostKeys),
+  userId: z.coerce.number().int().positive(),
+});
+
+export async function setDutyAssignmentAction(input: {
+  branchId: number;
+  date: string;
+  dutyPost: string;
+  userId: number;
+}): Promise<{ error: string | null }> {
+  const user = await requireModule("transactions", "edit");
+
+  const parsed = dutySchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  if (user.roleKey !== "super_admin" && user.branchId !== parsed.data.branchId) {
+    return { error: "Not authorized for this branch." };
+  }
+
+  await setDutyAssignment({
+    branchId: parsed.data.branchId,
+    date: parsed.data.date,
+    dutyPost: parsed.data.dutyPost as (typeof DUTY_POSTS)[number]["key"],
+    userId: parsed.data.userId,
+    assignedBy: user.userId,
+  });
+
+  revalidatePath("/transactions");
+  return { error: null };
 }

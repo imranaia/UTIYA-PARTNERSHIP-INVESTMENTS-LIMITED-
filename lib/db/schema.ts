@@ -94,6 +94,17 @@ export const clientSequences = pgTable("client_sequences", {
   lastSeq: integer("last_seq").notNull().default(0),
 });
 
+// Backs auto-generated Payment IDs (client transactions + cash book entries)
+// — a single running counter per branch so every payment is uniquely
+// trackable, separate from and never affecting the client's own permanent
+// client_code.
+export const paymentSequences = pgTable("payment_sequences", {
+  branchId: integer("branch_id")
+    .primaryKey()
+    .references(() => branches.id),
+  lastSeq: integer("last_seq").notNull().default(0),
+});
+
 export const clients = pgTable(
   "clients",
   {
@@ -153,6 +164,7 @@ export const clientTransactions = pgTable(
   "client_transactions",
   {
     id: serial("id").primaryKey(),
+    paymentId: varchar("payment_id", { length: 20 }).unique(),
     clientId: integer("client_id")
       .notNull()
       .references(() => clients.id),
@@ -270,6 +282,57 @@ export const bankCashReconciliation = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("branch_recon_date_unique").on(t.branchId, t.reconDate)],
+);
+
+// ===================== General ledger (Week Summary buckets) =====================
+// Covers everything in the source "Week Summary" sheet not already captured
+// by clients/transactions (loans, savings), expenses (operating expenses),
+// or client_defaults (bad debt): funds transfer, asset purchase/disposal,
+// borrowings, liabilities, and other investment income. `label` is free text
+// (e.g. "Motor Vehicle", "Zenith Bank Account 1") rather than a fixed seeded
+// taxonomy — this business's sub-accounts vary and aren't ours to hardcode.
+export const ledgerEntries = pgTable(
+  "ledger_entries",
+  {
+    id: serial("id").primaryKey(),
+    branchId: integer("branch_id")
+      .notNull()
+      .references(() => branches.id),
+    section: varchar("section", { length: 30 }).notNull(),
+    label: varchar("label", { length: 120 }).notNull(),
+    entryDate: date("entry_date").notNull(),
+    amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+    notes: text("notes"),
+    recordedBy: integer("recorded_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("idx_ledger_branch_date").on(t.branchId, t.entryDate)],
+);
+
+// ===================== Daily duty roster =====================
+// Matches the source sheet's daily sign-off block (Duty post | Name of
+// officer): which staff member fills each duty post for a given branch+day.
+export const dutyAssignments = pgTable(
+  "duty_assignments",
+  {
+    id: serial("id").primaryKey(),
+    branchId: integer("branch_id")
+      .notNull()
+      .references(() => branches.id),
+    assignmentDate: date("assignment_date").notNull(),
+    dutyPost: varchar("duty_post", { length: 30 }).notNull(), // branch_head | receiving_officer | supervision_officer | disbursement_officer
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    assignedBy: integer("assigned_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("duty_branch_date_post_unique").on(t.branchId, t.assignmentDate, t.dutyPost)],
 );
 
 // ===================== Audit log =====================

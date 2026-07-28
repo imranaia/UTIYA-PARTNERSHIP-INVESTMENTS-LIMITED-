@@ -1,7 +1,7 @@
 import "server-only";
 import { getDb } from "./client";
 import { branches, clients, clientTransactions, expenses, clientDefaults } from "./schema";
-import { eq, and, sql, asc } from "drizzle-orm";
+import { eq, and, sql, asc, gte, lte } from "drizzle-orm";
 
 export async function getPortfolioSummary(branchId: number | null) {
   const db = getDb();
@@ -72,11 +72,29 @@ export async function getDailyTransactionTotals(params: { branchId: number | nul
       serviceCharge: sql<string>`coalesce(sum(${clientTransactions.serviceCharge}), 0)`,
       newSavings: sql<string>`coalesce(sum(${clientTransactions.newSavings}), 0)`,
       savingsRecall: sql<string>`coalesce(sum(${clientTransactions.savingsRecall}), 0)`,
+      collateralTransferIn: sql<string>`coalesce(sum(${clientTransactions.collateralTransferIn}), 0)`,
+      collateralTransferOut: sql<string>`coalesce(sum(${clientTransactions.collateralTransferOut}), 0)`,
     })
     .from(clientTransactions)
     .where(and(...conditions));
 
   return row;
+}
+
+// Running collateral balance held (not tracked as its own b/f-c/f chain like
+// savings — collateral net movement is small and infrequent enough that a
+// straight aggregate is accurate and far simpler).
+export async function getTotalCollateralHeld(branchId: number | null) {
+  const db = getDb();
+  const [row] = await db
+    .select({
+      totalIn: sql<string>`coalesce(sum(${clientTransactions.collateralTransferIn}), 0)`,
+      totalOut: sql<string>`coalesce(sum(${clientTransactions.collateralTransferOut}), 0)`,
+    })
+    .from(clientTransactions)
+    .where(branchId !== null ? eq(clientTransactions.branchId, branchId) : undefined);
+
+  return (Number(row?.totalIn ?? 0) - Number(row?.totalOut ?? 0)).toFixed(2);
 }
 
 export async function getDailyExpenseTotal(params: { branchId: number | null; date: string }) {
@@ -89,6 +107,39 @@ export async function getDailyExpenseTotal(params: { branchId: number | null; da
     .from(expenses)
     .where(and(...conditions));
 
+  return row?.total ?? "0";
+}
+
+export async function getTransactionTotalsForRange(params: { branchId: number; from: string; to: string }) {
+  const db = getDb();
+  const [row] = await db
+    .select({
+      loanDisbursement: sql<string>`coalesce(sum(${clientTransactions.loanDisbursement}), 0)`,
+      loanRecovery: sql<string>`coalesce(sum(${clientTransactions.loanRecovery}), 0)`,
+      profitInterest: sql<string>`coalesce(sum(${clientTransactions.profitInterest}), 0)`,
+      serviceCharge: sql<string>`coalesce(sum(${clientTransactions.serviceCharge}), 0)`,
+      newSavings: sql<string>`coalesce(sum(${clientTransactions.newSavings}), 0)`,
+      savingsRecall: sql<string>`coalesce(sum(${clientTransactions.savingsRecall}), 0)`,
+    })
+    .from(clientTransactions)
+    .where(
+      and(
+        eq(clientTransactions.branchId, params.branchId),
+        gte(clientTransactions.transactionDate, params.from),
+        lte(clientTransactions.transactionDate, params.to),
+      ),
+    );
+  return row;
+}
+
+export async function getExpenseTotalForRange(params: { branchId: number; from: string; to: string }) {
+  const db = getDb();
+  const [row] = await db
+    .select({ total: sql<string>`coalesce(sum(${expenses.amount}), 0)` })
+    .from(expenses)
+    .where(
+      and(eq(expenses.branchId, params.branchId), gte(expenses.expenseDate, params.from), lte(expenses.expenseDate, params.to)),
+    );
   return row?.total ?? "0";
 }
 

@@ -1,11 +1,13 @@
 import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { listActiveBranches } from "@/lib/db/branches";
-import { listLoanCollectorsForBranch } from "@/lib/db/users";
+import { listLoanCollectorsForBranch, listActiveUsersForBranch } from "@/lib/db/users";
 import { listDailyEntryRows } from "@/lib/db/transactions";
+import { listDutyAssignments } from "@/lib/db/dutyAssignments";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DailyTransactionsTable } from "./DailyTransactionsTable";
+import { DutyRoster } from "./DutyRoster";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -20,7 +22,7 @@ export default async function TransactionsPage({
   searchParams: Promise<{ date?: string; branchId?: string; collectorId?: string }>;
 }) {
   const user = await requireModule("transactions", "view");
-  const { canCreate } = await getModulePermission("transactions");
+  const { canCreate, canEdit } = await getModulePermission("transactions");
   const isSuperAdmin = user.roleKey === "super_admin";
   const { date, branchId: branchIdParam, collectorId: collectorIdParam } = await searchParams;
 
@@ -32,7 +34,13 @@ export default async function TransactionsPage({
   const collectors = branchId ? await listLoanCollectorsForBranch(branchId) : [];
   const collectorId = collectorIdParam ? Number(collectorIdParam) : undefined;
 
-  const rows = branchId ? await listDailyEntryRows({ branchId, collectorId, date: transactionDate }) : [];
+  const [rows, dutyUsers, dutyAssignments] = branchId
+    ? await Promise.all([
+        listDailyEntryRows({ branchId, collectorId, date: transactionDate }),
+        listActiveUsersForBranch(branchId),
+        listDutyAssignments({ branchId, date: transactionDate }),
+      ])
+    : [[], [], []];
 
   return (
     <div className="space-y-4">
@@ -89,7 +97,16 @@ export default async function TransactionsPage({
       {!branchId ? (
         <GlassPanel className="p-6 text-center text-muted-foreground">Select a branch to begin.</GlassPanel>
       ) : (
-        <DailyTransactionsTable rows={rows} transactionDate={transactionDate} branchId={branchId} readOnly={!canCreate} />
+        <>
+          <DutyRoster
+            branchId={branchId}
+            date={transactionDate}
+            users={dutyUsers}
+            assignments={dutyAssignments}
+            readOnly={!canEdit}
+          />
+          <DailyTransactionsTable rows={rows} transactionDate={transactionDate} branchId={branchId} readOnly={!canCreate} />
+        </>
       )}
     </div>
   );

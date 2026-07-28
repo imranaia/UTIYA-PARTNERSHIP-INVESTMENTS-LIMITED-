@@ -63,6 +63,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
+              <TableHead>Payment ID</TableHead>
               <TableHead className="text-right">Loan Disb.</TableHead>
               <TableHead className="text-right">Recall</TableHead>
               <TableHead className="text-right">New Savings</TableHead>
@@ -76,6 +77,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             {transactions.map((t) => (
               <TableRow key={t.id}>
                 <TableCell>{t.transactionDate}</TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">{t.paymentId ?? "—"}</TableCell>
                 <TableCell className="text-right">{money(t.loanDisbursement)}</TableCell>
                 <TableCell className="text-right">{money(t.loanRecovery)}</TableCell>
                 <TableCell className="text-right">{money(t.newSavings)}</TableCell>
@@ -87,7 +89,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             ))}
             {transactions.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                <TableCell colSpan={9} className="text-center text-muted-foreground">
                   No transactions recorded yet.
                 </TableCell>
               </TableRow>

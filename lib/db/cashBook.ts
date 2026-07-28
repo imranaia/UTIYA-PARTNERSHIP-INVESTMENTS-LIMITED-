@@ -2,6 +2,7 @@ import "server-only";
 import { getDb } from "./client";
 import { cashBookEntries, users } from "./schema";
 import { eq, asc } from "drizzle-orm";
+import { generatePaymentId } from "@/lib/services/paymentId";
 
 export async function listCashBookEntries(params: { branchId: number }) {
   const db = getDb();
@@ -52,16 +53,20 @@ export async function createCashBookEntry(data: {
   code?: string;
   details?: string;
   refType?: string;
-  refNumber?: string;
   debit: string;
   credit: string;
   recordedBy: number;
 }) {
   const db = getDb();
-  const [entry] = await db
-    .insert(cashBookEntries)
-    .values({ ...data, runningBalance: "0" })
-    .returning();
+
+  const entry = await db.transaction(async (tx) => {
+    const refNumber = await generatePaymentId(tx, data.branchId, new Date(data.entryDate));
+    const [row] = await tx
+      .insert(cashBookEntries)
+      .values({ ...data, refNumber, runningBalance: "0" })
+      .returning();
+    return row;
+  });
 
   await recomputeRunningBalances(data.branchId);
   return entry;

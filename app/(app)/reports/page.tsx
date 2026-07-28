@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { BookOpen } from "lucide-react";
 import { requireModule } from "@/lib/auth/session";
 import { listActiveBranches } from "@/lib/db/branches";
 import {
@@ -6,6 +8,7 @@ import {
   getDailyTransactionTotals,
   getDailyExpenseTotal,
   getBranchBreakdown,
+  getTotalCollateralHeld,
 } from "@/lib/db/reports";
 import { getOpenDefaultCount } from "@/lib/db/clientDefaults";
 import { GlassPanel } from "@/components/layout/GlassPanel";
@@ -53,12 +56,13 @@ export default async function ReportsPage({
   const branches = isSuperAdmin ? await listActiveBranches() : [];
   const branchId = isSuperAdmin ? (branchIdParam ? Number(branchIdParam) : null) : user.branchId;
 
-  const [portfolio, loanPortfolio, dailyTotals, dailyExpenses, openDefaults, breakdown] = await Promise.all([
+  const [portfolio, loanPortfolio, dailyTotals, dailyExpenses, openDefaults, totalCollateral, breakdown] = await Promise.all([
     getPortfolioSummary(branchId),
     getLoanPortfolioSummary(branchId),
     getDailyTransactionTotals({ branchId, date: reportDate }),
     getDailyExpenseTotal({ branchId, date: reportDate }),
     getOpenDefaultCount(branchId),
+    getTotalCollateralHeld(branchId),
     isSuperAdmin && branchId === null ? getBranchBreakdown(reportDate) : Promise.resolve(null),
   ]);
 
@@ -69,9 +73,26 @@ export default async function ReportsPage({
     Number(dailyTotals?.savingsRecall ?? 0) -
     Number(dailyExpenses);
 
+  // Matches the source ledger's "Total Receipt" column: everything collected
+  // from clients in a day, before loan disbursement/savings recall go back out.
+  const totalReceipt =
+    Number(dailyTotals?.loanRecovery ?? 0) +
+    Number(dailyTotals?.profitInterest ?? 0) +
+    Number(dailyTotals?.newSavings ?? 0) +
+    Number(dailyTotals?.collateralTransferIn ?? 0) +
+    Number(dailyTotals?.serviceCharge ?? 0);
+
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold">Reports</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-lg font-semibold">Reports</h1>
+        <Button asChild variant="secondary" size="sm" className="gap-1.5">
+          <Link href="/reports/week-summary">
+            <BookOpen className="size-4" />
+            Week Summary
+          </Link>
+        </Button>
+      </div>
 
       <GlassPanel className="p-4">
         <form className="flex flex-wrap items-end gap-3">
@@ -102,10 +123,11 @@ export default async function ReportsPage({
         </form>
       </GlassPanel>
 
-      <GlassPanel className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-3 lg:grid-cols-6">
+      <GlassPanel className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-3 lg:grid-cols-7">
         <StatTile label="Active Clients" value={portfolio.activeClients.toLocaleString()} />
         <StatTile label="Active Loans Outstanding" value={money(loanPortfolio.activeLoanBalance)} />
         <StatTile label="Total Capital (Savings)" value={money(portfolio.totalSavings)} />
+        <StatTile label="Total Collateral Held" value={money(totalCollateral)} />
         <StatTile label="Today's Expenses" value={money(dailyExpenses)} emphasis="negative" />
         <StatTile
           label="Net Cash Movement"
@@ -127,6 +149,9 @@ export default async function ReportsPage({
         <StatTile label="Service Charge" value={money(dailyTotals?.serviceCharge ?? 0)} />
         <StatTile label="New Savings" value={money(dailyTotals?.newSavings ?? 0)} />
         <StatTile label="Savings Recall" value={money(dailyTotals?.savingsRecall ?? 0)} />
+        <StatTile label="Collateral Transferred In" value={money(dailyTotals?.collateralTransferIn ?? 0)} />
+        <StatTile label="Collateral Transferred Out" value={money(dailyTotals?.collateralTransferOut ?? 0)} />
+        <StatTile label="Total Receipt" value={money(totalReceipt)} emphasis="positive" />
       </GlassPanel>
 
       {breakdown && (

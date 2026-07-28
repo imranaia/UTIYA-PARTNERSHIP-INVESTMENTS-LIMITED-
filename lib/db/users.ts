@@ -61,6 +61,14 @@ export async function getUserProfile(userId: number) {
   return row ?? null;
 }
 
+export async function listActiveUsersForBranch(branchId: number) {
+  const db = getDb();
+  return db
+    .select({ id: users.id, fullName: users.fullName })
+    .from(users)
+    .where(and(eq(users.branchId, branchId), eq(users.isActive, true)));
+}
+
 export async function listLoanCollectorsForBranch(branchId: number) {
   const db = getDb();
   return db

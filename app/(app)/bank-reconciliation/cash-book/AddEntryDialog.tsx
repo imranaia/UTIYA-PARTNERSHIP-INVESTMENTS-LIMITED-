@@ -53,24 +53,19 @@ export function AddEntryDialog({ branchId }: { branchId: number }) {
             <Input id="details" name="details" placeholder="e.g. Cash deposit" />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="refType">Ref. type</Label>
-              <Select name="refType">
-                <SelectTrigger id="refType" className="w-full">
-                  <SelectValue placeholder="—" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="OR">OR (Receipt)</SelectItem>
-                  <SelectItem value="PV">PV (Voucher)</SelectItem>
-                  <SelectItem value="CQ">CQ (Cheque)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="refNumber">Ref. no.</Label>
-              <Input id="refNumber" name="refNumber" />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="refType">Ref. type</Label>
+            <Select name="refType">
+              <SelectTrigger id="refType" className="w-full">
+                <SelectValue placeholder="—" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="OR">OR (Receipt)</SelectItem>
+                <SelectItem value="PV">PV (Voucher)</SelectItem>
+                <SelectItem value="CQ">CQ (Cheque)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">The reference number is generated automatically on save.</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
