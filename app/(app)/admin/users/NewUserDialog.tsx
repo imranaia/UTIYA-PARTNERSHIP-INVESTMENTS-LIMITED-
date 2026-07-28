@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,7 @@ export function NewUserDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [successPassword, setSuccessPassword] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [state, formAction, pending] = useActionState(createUserAction, initialState);
 
   useEffect(() => {
@@ -32,8 +34,24 @@ export function NewUserDialog({
   }, [state]);
 
   function handleClose(next: boolean) {
+    // Once a password is showing, only the explicit "Done" button (which also
+    // clears successPassword) may close the dialog — an admin who fat-fingers
+    // Escape or clicks outside must not lose it before it's copied.
+    if (successPassword && !next) return;
     setOpen(next);
-    if (!next) setSuccessPassword(null);
+  }
+
+  function handleDone() {
+    setSuccessPassword(null);
+    setCopied(false);
+    setOpen(false);
+  }
+
+  async function handleCopy() {
+    if (!successPassword) return;
+    await navigator.clipboard.writeText(successPassword);
+    setCopied(true);
+    toast.success("Password copied.");
   }
 
   return (
@@ -44,7 +62,16 @@ export function NewUserDialog({
           Add User
         </Button>
       </DialogTrigger>
-      <DialogContent className="glass-panel-strong border-none sm:max-w-sm">
+      <DialogContent
+        className="glass-panel-strong border-none sm:max-w-sm"
+        showCloseButton={!successPassword}
+        onInteractOutside={(e) => {
+          if (successPassword) e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          if (successPassword) e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{successPassword ? "User created" : "Add user"}</DialogTitle>
         </DialogHeader>
@@ -52,12 +79,18 @@ export function NewUserDialog({
         {successPassword ? (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Share this temporary password with the staff member directly. It will not be shown again.
+              Share this temporary password with the staff member directly. It will not be shown again once you close this
+              dialog.
             </p>
-            <p className="select-all rounded-lg border border-border bg-muted px-3 py-2 text-center font-mono text-sm">
-              {successPassword}
-            </p>
-            <Button className="w-full" onClick={() => handleClose(false)}>
+            <div className="flex items-center gap-2">
+              <p className="flex-1 select-all rounded-lg border border-border bg-muted px-3 py-2 text-center font-mono text-sm">
+                {successPassword}
+              </p>
+              <Button type="button" variant="secondary" size="icon" onClick={handleCopy} title="Copy password">
+                {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+              </Button>
+            </div>
+            <Button className="w-full" onClick={handleDone}>
               Done
             </Button>
           </div>
