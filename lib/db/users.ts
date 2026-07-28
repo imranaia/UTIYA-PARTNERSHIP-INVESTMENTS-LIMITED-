@@ -1,7 +1,7 @@
 import "server-only";
 import { getDb } from "./client";
 import { users, roles, branches } from "./schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 import { hashPassword, generateTempPassword } from "@/lib/auth/password";
 
 export async function getUserByUsername(username: string) {
@@ -59,6 +59,15 @@ export async function getUserProfile(userId: number) {
     .leftJoin(branches, eq(branches.id, users.branchId))
     .where(eq(users.id, userId));
   return row ?? null;
+}
+
+export async function listLoanCollectorsForBranch(branchId: number) {
+  const db = getDb();
+  return db
+    .select({ id: users.id, fullName: users.fullName })
+    .from(users)
+    .innerJoin(roles, eq(roles.id, users.roleId))
+    .where(and(eq(users.branchId, branchId), eq(roles.key, "loan_collector"), eq(users.isActive, true)));
 }
 
 export async function listUsersForBranch(branchId: number | null) {
