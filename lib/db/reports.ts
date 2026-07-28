@@ -1,6 +1,6 @@
 import "server-only";
 import { getDb } from "./client";
-import { branches, clients, clientTransactions, expenses } from "./schema";
+import { branches, clients, clientTransactions, expenses, clientDefaults } from "./schema";
 import { eq, and, sql, asc } from "drizzle-orm";
 
 export async function getPortfolioSummary(branchId: number | null) {
@@ -24,6 +24,39 @@ export async function getPortfolioSummary(branchId: number | null) {
 
   const row = result.rows[0];
   return { activeClients: row?.active_clients ?? 0, totalSavings: row?.total_savings ?? "0" };
+}
+
+// Mirrors the source ledger's "Tracker" sheet: Active Investment (loans
+// currently outstanding) is disbursement minus recovery minus whatever has
+// been reclassified into Default Investment — a default removes a loan from
+// the active bucket permanently, it doesn't return even once resolved (the
+// source sheet has no such flow back to Active).
+export async function getLoanPortfolioSummary(branchId: number | null) {
+  const db = getDb();
+
+  const [txnRow] = await db
+    .select({
+      disbursement: sql<string>`coalesce(sum(${clientTransactions.loanDisbursement}), 0)`,
+      recovery: sql<string>`coalesce(sum(${clientTransactions.loanRecovery}), 0)`,
+    })
+    .from(clientTransactions)
+    .where(branchId !== null ? eq(clientTransactions.branchId, branchId) : undefined);
+
+  const [defaultRow] = await db
+    .select({
+      totalDefaulted: sql<string>`coalesce(sum(${clientDefaults.defaultedAmount}), 0)`,
+      openDefaulted: sql<string>`coalesce(sum(case when ${clientDefaults.resolvedAt} is null then ${clientDefaults.defaultedAmount} else 0 end), 0)`,
+    })
+    .from(clientDefaults)
+    .where(branchId !== null ? eq(clientDefaults.branchId, branchId) : undefined);
+
+  const activeLoanBalance = (
+    Number(txnRow?.disbursement ?? 0) -
+    Number(txnRow?.recovery ?? 0) -
+    Number(defaultRow?.totalDefaulted ?? 0)
+  ).toFixed(2);
+
+  return { activeLoanBalance, openDefaultBalance: defaultRow?.openDefaulted ?? "0" };
 }
 
 export async function getDailyTransactionTotals(params: { branchId: number | null; date: string }) {

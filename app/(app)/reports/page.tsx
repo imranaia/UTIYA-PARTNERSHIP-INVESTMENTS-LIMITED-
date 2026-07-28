@@ -1,6 +1,12 @@
 import { requireModule } from "@/lib/auth/session";
 import { listActiveBranches } from "@/lib/db/branches";
-import { getPortfolioSummary, getDailyTransactionTotals, getDailyExpenseTotal, getBranchBreakdown } from "@/lib/db/reports";
+import {
+  getPortfolioSummary,
+  getLoanPortfolioSummary,
+  getDailyTransactionTotals,
+  getDailyExpenseTotal,
+  getBranchBreakdown,
+} from "@/lib/db/reports";
 import { getOpenDefaultCount } from "@/lib/db/clientDefaults";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Input } from "@/components/ui/input";
@@ -47,8 +53,9 @@ export default async function ReportsPage({
   const branches = isSuperAdmin ? await listActiveBranches() : [];
   const branchId = isSuperAdmin ? (branchIdParam ? Number(branchIdParam) : null) : user.branchId;
 
-  const [portfolio, dailyTotals, dailyExpenses, openDefaults, breakdown] = await Promise.all([
+  const [portfolio, loanPortfolio, dailyTotals, dailyExpenses, openDefaults, breakdown] = await Promise.all([
     getPortfolioSummary(branchId),
+    getLoanPortfolioSummary(branchId),
     getDailyTransactionTotals({ branchId, date: reportDate }),
     getDailyExpenseTotal({ branchId, date: reportDate }),
     getOpenDefaultCount(branchId),
@@ -95,8 +102,9 @@ export default async function ReportsPage({
         </form>
       </GlassPanel>
 
-      <GlassPanel className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-5">
+      <GlassPanel className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-3 lg:grid-cols-6">
         <StatTile label="Active Clients" value={portfolio.activeClients.toLocaleString()} />
+        <StatTile label="Active Loans Outstanding" value={money(loanPortfolio.activeLoanBalance)} />
         <StatTile label="Total Capital (Savings)" value={money(portfolio.totalSavings)} />
         <StatTile label="Today's Expenses" value={money(dailyExpenses)} emphasis="negative" />
         <StatTile
@@ -106,7 +114,7 @@ export default async function ReportsPage({
         />
         <StatTile
           label="Open Defaults"
-          value={openDefaults.toLocaleString()}
+          value={`${openDefaults.toLocaleString()} (${money(loanPortfolio.openDefaultBalance)})`}
           emphasis={openDefaults > 0 ? "negative" : undefined}
         />
       </GlassPanel>
