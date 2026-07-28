@@ -1,7 +1,7 @@
 import "server-only";
 import { getDb } from "./client";
 import { clients, branches, users, clientTransactions } from "./schema";
-import { eq, and, desc, ilike, or } from "drizzle-orm";
+import { eq, and, desc, ilike, or, inArray } from "drizzle-orm";
 import { generateClientCode } from "@/lib/services/clientCode";
 import { getBranch } from "./branches";
 
@@ -53,6 +53,16 @@ export async function getClientById(id: number) {
     .leftJoin(users, eq(users.id, clients.loanCollectorId))
     .where(eq(clients.id, id));
   return row ?? null;
+}
+
+export async function filterClientIdsInBranch(clientIds: number[], branchId: number) {
+  if (clientIds.length === 0) return new Set<number>();
+  const db = getDb();
+  const rows = await db
+    .select({ id: clients.id })
+    .from(clients)
+    .where(and(inArray(clients.id, clientIds), eq(clients.branchId, branchId)));
+  return new Set(rows.map((r) => r.id));
 }
 
 export async function listClientTransactions(clientId: number) {
