@@ -71,58 +71,76 @@ function StatusBadge({ status }: { status: PaymentStatus }) {
   );
 }
 
-function ClientRow({ row, readOnly, selectedDay }: { row: Row; readOnly: boolean; selectedDay: number }) {
+function ClientCard({ row, readOnly, selectedDay }: { row: Row; readOnly: boolean; selectedDay: number }) {
   const [open, setOpen] = useState(false);
   const filledFields = FIELDS.filter((f) => Number(row[f.key] ?? 0) > 0);
   const offDay = selectedDay !== row.enrollmentDay;
 
   return (
-    <div className="border-b border-border last:border-b-0">
+    <GlassPanel className="overflow-hidden p-0">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-accent/40"
+        className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-accent/40"
       >
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="truncate font-medium">{row.fullName}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="truncate text-base font-semibold">{row.fullName}</span>
             {row.paymentId && <span className="shrink-0 font-mono text-xs text-muted-foreground">{row.paymentId}</span>}
           </div>
-          <div className="truncate text-xs text-muted-foreground">
+          <div className="mt-0.5 truncate text-xs text-muted-foreground">
             {row.clientCode}
             {row.groupName ? ` · ${row.groupName}` : ""} · Pays {WEEKDAY_NAMES[row.enrollmentDay]} · B/F {money(row.savingsBalanceBf)}
           </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <StatusBadge status={row.paymentStatus} />
+            {row.supplementaryOverride === "not_supplementary" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                Supplementary override: off
+              </span>
+            )}
+            {filledFields.length > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary">
+                {filledFields.length} field{filledFields.length === 1 ? "" : "s"} entered
+              </span>
+            )}
+          </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <StatusBadge status={row.paymentStatus} />
-          {filledFields.length > 0 && !open && (
-            <span className="hidden rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary sm:inline">
-              {filledFields.length} entered
-            </span>
-          )}
-          <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")} />
-        </div>
+        <ChevronDown className={cn("size-5 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
       </button>
 
-      <div className={cn("px-4 pb-4", !open && "hidden")}>
-        {offDay && (
-          <div className="mb-3 space-y-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            <p>
-              {row.fullName}&apos;s assigned collection day is <strong>{WEEKDAY_NAMES[row.enrollmentDay]}</strong>. Recording a
-              payment here will be counted as a <strong>Supplementary</strong> payment automatically.
-            </p>
-            <label className="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                name={`sup_${row.clientId}`}
-                defaultChecked={row.supplementaryOverride === "not_supplementary"}
-                disabled={readOnly}
-                className="size-3.5"
-              />
-              This was actually collected on time — data just entered late. Don&apos;t mark as Supplementary.
-            </label>
-          </div>
-        )}
+      <div className={cn("border-t border-border px-4 pt-3 pb-4", !open && "hidden")}>
+        <div
+          className={cn(
+            "mb-3 space-y-2 rounded-lg px-3 py-2 text-xs",
+            offDay
+              ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+              : "bg-muted/50 text-muted-foreground",
+          )}
+        >
+          <p>
+            {row.fullName}&apos;s assigned collection day is <strong>{WEEKDAY_NAMES[row.enrollmentDay]}</strong>.
+            {offDay ? (
+              <>
+                {" "}
+                Today ({WEEKDAY_NAMES[selectedDay]}) is a different day, so a payment recorded here will be counted as a{" "}
+                <strong>Supplementary</strong> payment automatically.
+              </>
+            ) : (
+              " Today matches their assigned day, so a payment recorded here counts as on-time — this override isn't needed."
+            )}
+          </p>
+          <label className={cn("flex items-center gap-1.5", !offDay && "opacity-50")}>
+            <input
+              type="checkbox"
+              name={`sup_${row.clientId}`}
+              defaultChecked={row.supplementaryOverride === "not_supplementary"}
+              disabled={readOnly || !offDay}
+              className="size-3.5"
+            />
+            This was actually collected on time — data just entered late. Don&apos;t mark as Supplementary.
+          </label>
+        </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {FIELDS.map((f) => (
             <div key={f.prefix} className="space-y-1">
@@ -156,7 +174,7 @@ function ClientRow({ row, readOnly, selectedDay }: { row: Row; readOnly: boolean
           </div>
         </div>
       </div>
-    </div>
+    </GlassPanel>
   );
 }
 
@@ -213,6 +231,12 @@ export function DailyTransactionsTable({
     });
   }, [rows, search, filter]);
 
+  const SaveButton = (
+    <Button type="submit" disabled={pending}>
+      {pending ? "Saving…" : "Save all"}
+    </Button>
+  );
+
   return (
     <form action={formAction}>
       <input type="hidden" name="transactionDate" value={transactionDate} />
@@ -221,22 +245,25 @@ export function DailyTransactionsTable({
 
       {rows.length > 0 && (
         <>
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            {FILTERS.map((f) => (
-              <Button
-                key={f.key}
-                type="button"
-                variant={filter === f.key ? "default" : "secondary"}
-                size="sm"
-                className="h-7 gap-1.5 text-xs"
-                onClick={() => setFilter(f.key)}
-              >
-                {f.label}
-                <Badge variant="outline" className="h-4 min-w-4 px-1 text-[10px]">
-                  {counts[f.key] ?? 0}
-                </Badge>
-              </Button>
-            ))}
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-1.5">
+              {FILTERS.map((f) => (
+                <Button
+                  key={f.key}
+                  type="button"
+                  variant={filter === f.key ? "default" : "secondary"}
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={() => setFilter(f.key)}
+                >
+                  {f.label}
+                  <Badge variant="outline" className="h-4 min-w-4 px-1 text-[10px]">
+                    {counts[f.key] ?? 0}
+                  </Badge>
+                </Button>
+              ))}
+            </div>
+            {!readOnly && SaveButton}
           </div>
           <div className="relative mb-3">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -250,22 +277,20 @@ export function DailyTransactionsTable({
         </>
       )}
 
-      <GlassPanel className="overflow-hidden p-0">
-        {filteredRows.length === 0 ? (
-          <p className="p-6 text-center text-muted-foreground">
-            {rows.length === 0 ? "No active clients for this branch/collector." : "No clients match this filter."}
-          </p>
-        ) : (
-          filteredRows.map((r) => <ClientRow key={r.clientId} row={r} readOnly={readOnly} selectedDay={selectedDay} />)
-        )}
-      </GlassPanel>
+      {filteredRows.length === 0 ? (
+        <GlassPanel className="p-6 text-center text-muted-foreground">
+          {rows.length === 0 ? "No active clients for this branch/collector." : "No clients match this filter."}
+        </GlassPanel>
+      ) : (
+        <div className="space-y-3">
+          {filteredRows.map((r) => (
+            <ClientCard key={r.clientId} row={r} readOnly={readOnly} selectedDay={selectedDay} />
+          ))}
+        </div>
+      )}
 
       {!readOnly && rows.length > 0 && (
-        <div className="mt-3 flex justify-end">
-          <Button type="submit" disabled={pending}>
-            {pending ? "Saving…" : "Save all"}
-          </Button>
-        </div>
+        <div className="mt-3 flex justify-end">{SaveButton}</div>
       )}
     </form>
   );
