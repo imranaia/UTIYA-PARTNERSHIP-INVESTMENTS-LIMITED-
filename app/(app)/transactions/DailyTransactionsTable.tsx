@@ -77,31 +77,34 @@ function ClientCard({ row, readOnly, selectedDay }: { row: Row; readOnly: boolea
   const offDay = selectedDay !== row.enrollmentDay;
 
   return (
-    <GlassPanel className="overflow-hidden p-0">
+    <GlassPanel className={cn("flex h-fit flex-col overflow-hidden p-0", open && "sm:col-span-2 xl:col-span-3")}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-accent/40"
+        className="flex w-full items-start justify-between gap-3 px-4 py-3.5 text-left hover:bg-accent/40"
       >
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="truncate text-base font-semibold">{row.fullName}</span>
-            {row.paymentId && <span className="shrink-0 font-mono text-xs text-muted-foreground">{row.paymentId}</span>}
           </div>
-          <div className="mt-0.5 truncate text-xs text-muted-foreground">
+          <div className="mt-0.5 text-xs text-muted-foreground">
             {row.clientCode}
-            {row.groupName ? ` · ${row.groupName}` : ""} · Pays {WEEKDAY_NAMES[row.enrollmentDay]} · B/F {money(row.savingsBalanceBf)}
+            {row.groupName ? ` · ${row.groupName}` : ""}
+          </div>
+          <div className="mt-0.5 text-xs text-muted-foreground">
+            Pays {WEEKDAY_NAMES[row.enrollmentDay]} · B/F {money(row.savingsBalanceBf)}
+            {row.paymentId && <span className="font-mono"> · {row.paymentId}</span>}
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <StatusBadge status={row.paymentStatus} />
             {row.supplementaryOverride === "not_supplementary" && (
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                Supplementary override: off
+                Override: off
               </span>
             )}
             {filledFields.length > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary">
-                {filledFields.length} field{filledFields.length === 1 ? "" : "s"} entered
+                {filledFields.length} entered
               </span>
             )}
           </div>
@@ -282,7 +285,7 @@ export function DailyTransactionsTable({
           {rows.length === 0 ? "No active clients for this branch/collector." : "No clients match this filter."}
         </GlassPanel>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {filteredRows.map((r) => (
             <ClientCard key={r.clientId} row={r} readOnly={readOnly} selectedDay={selectedDay} />
           ))}
