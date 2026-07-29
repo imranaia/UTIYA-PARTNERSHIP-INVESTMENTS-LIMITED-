@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { saveDailyTransactionsAction, type DailyTransactionsState } from "./actions";
+import { ReceiptDialog } from "./ReceiptDialog";
 
 type PaymentStatus = "paid_on_day" | "paid_supplementary" | "due_today" | "overdue" | "not_due_yet";
 
@@ -35,15 +36,15 @@ type Row = {
 
 const initialState: DailyTransactionsState = { error: null, savedCount: 0 };
 
-const FIELDS: { key: keyof Row; prefix: string; label: string }[] = [
-  { key: "loanDisbursement", prefix: "ld", label: "Loan Disbursement" },
-  { key: "loanRecovery", prefix: "lr", label: "Loan Recovery" },
-  { key: "profitInterest", prefix: "pi", label: "Interest" },
-  { key: "serviceCharge", prefix: "sc", label: "Service Charge" },
-  { key: "newSavings", prefix: "ns", label: "New Savings" },
-  { key: "savingsRecall", prefix: "sr", label: "Savings Recall" },
-  { key: "collateralTransferIn", prefix: "ci", label: "Collateral In" },
-  { key: "collateralTransferOut", prefix: "co", label: "Collateral Out" },
+const FIELDS: { key: keyof Row; prefix: string; label: string; direction: "received" | "paidOut" }[] = [
+  { key: "loanDisbursement", prefix: "ld", label: "Loan Disbursement", direction: "paidOut" },
+  { key: "loanRecovery", prefix: "lr", label: "Loan Recovery", direction: "received" },
+  { key: "profitInterest", prefix: "pi", label: "Interest", direction: "received" },
+  { key: "serviceCharge", prefix: "sc", label: "Service Charge", direction: "received" },
+  { key: "newSavings", prefix: "ns", label: "New Savings", direction: "received" },
+  { key: "savingsRecall", prefix: "sr", label: "Savings Recall", direction: "paidOut" },
+  { key: "collateralTransferIn", prefix: "ci", label: "Collateral In", direction: "received" },
+  { key: "collateralTransferOut", prefix: "co", label: "Collateral Out", direction: "paidOut" },
 ];
 
 const WEEKDAY_NAMES = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -77,12 +78,16 @@ function ClientCard({
   selectedDay,
   transactionDate,
   branchId,
+  branchName,
+  preparedBy,
 }: {
   row: Row;
   readOnly: boolean;
   selectedDay: number;
   transactionDate: string;
   branchId: number;
+  branchName: string;
+  preparedBy: string;
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(saveDailyTransactionsAction, initialState);
@@ -97,12 +102,8 @@ function ClientCard({
 
   return (
     <GlassPanel className={cn("flex h-fit flex-col overflow-hidden p-0", open && "sm:col-span-2 lg:col-span-3")}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-start justify-between gap-3 px-4 py-3.5 text-left hover:bg-accent/40"
-      >
-        <div className="min-w-0 flex-1">
+      <div className="flex w-full items-start justify-between gap-3 px-4 py-3.5 hover:bg-accent/40">
+        <button type="button" onClick={() => setOpen((v) => !v)} className="min-w-0 flex-1 text-left">
           <div className="flex flex-wrap items-center gap-2">
             <span className="truncate text-base font-semibold">{row.fullName}</span>
           </div>
@@ -127,9 +128,35 @@ function ClientCard({
               </span>
             )}
           </div>
+        </button>
+        <div className="flex shrink-0 items-center gap-0.5">
+          {filledFields.length > 0 && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <ReceiptDialog
+                clientName={row.fullName}
+                clientCode={row.clientCode}
+                groupName={row.groupName}
+                branchName={branchName}
+                transactionDate={transactionDate}
+                paymentId={row.paymentId}
+                notes={row.notes}
+                preparedBy={preparedBy}
+                received={FIELDS.filter((f) => f.direction === "received" && Number(row[f.key] ?? 0) > 0).map((f) => ({
+                  label: f.label,
+                  value: Number(row[f.key]),
+                }))}
+                paidOut={FIELDS.filter((f) => f.direction === "paidOut" && Number(row[f.key] ?? 0) > 0).map((f) => ({
+                  label: f.label,
+                  value: Number(row[f.key]),
+                }))}
+              />
+            </div>
+          )}
+          <button type="button" onClick={() => setOpen((v) => !v)} className="p-1">
+            <ChevronDown className={cn("size-5 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
+          </button>
         </div>
-        <ChevronDown className={cn("size-5 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
-      </button>
+      </div>
 
       <form action={formAction} className={cn("border-t border-border px-4 pt-3 pb-4", !open && "hidden")}>
         <input type="hidden" name="transactionDate" value={transactionDate} />
@@ -222,11 +249,15 @@ export function DailyTransactionsTable({
   transactionDate,
   branchId,
   readOnly,
+  branchName,
+  preparedBy,
 }: {
   rows: Row[];
   transactionDate: string;
   branchId: number;
   readOnly: boolean;
+  branchName: string;
+  preparedBy: string;
 }) {
   const [search, setSearch] = useState("");
   // Default to "who's paying today" rather than dumping the entire roster on
@@ -309,6 +340,8 @@ export function DailyTransactionsTable({
               selectedDay={selectedDay}
               transactionDate={transactionDate}
               branchId={branchId}
+              branchName={branchName}
+              preparedBy={preparedBy}
             />
           ))}
         </div>

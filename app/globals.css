@@ -84,17 +84,18 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
-  --brand: oklch(0.58 0.16 258);
-  --brand-foreground: oklch(0.98 0 0);
+  /* Alkhair brand green, sampled from the logo mark. */
+  --brand: oklch(0.74 0.18 125);
+  --brand-foreground: oklch(0.18 0 0);
   --glass-bg: rgba(255, 255, 255, 0.55);
   --glass-bg-strong: rgba(255, 255, 255, 0.75);
   --glass-border: rgba(255, 255, 255, 0.45);
   --glass-highlight: rgba(255, 255, 255, 0.9);
   --glass-shadow: 0 8px 32px rgba(31, 41, 55, 0.12);
   --glass-blur: 20px;
-  --backdrop-a: oklch(0.9 0.05 250);
-  --backdrop-b: oklch(0.88 0.07 320);
-  --backdrop-c: oklch(0.92 0.05 190);
+  --backdrop-a: oklch(0.9 0.05 125);
+  --backdrop-b: oklch(0.89 0.06 90);
+  --backdrop-c: oklch(0.92 0.04 150);
 }
 
 .dark {
@@ -130,7 +131,7 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 
-  --brand: oklch(0.72 0.14 258);
+  --brand: oklch(0.8 0.18 125);
   --brand-foreground: oklch(0.15 0 0);
   --glass-bg: rgba(24, 24, 32, 0.45);
   --glass-bg-strong: rgba(24, 24, 32, 0.65);
@@ -138,9 +139,9 @@
   --glass-highlight: rgba(255, 255, 255, 0.08);
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   --glass-blur: 20px;
-  --backdrop-a: oklch(0.35 0.08 258);
-  --backdrop-b: oklch(0.3 0.1 320);
-  --backdrop-c: oklch(0.32 0.07 190);
+  --backdrop-a: oklch(0.32 0.08 125);
+  --backdrop-b: oklch(0.3 0.09 90);
+  --backdrop-c: oklch(0.3 0.06 150);
 }
 
 @layer base {
@@ -189,5 +190,25 @@
       radial-gradient(1100px circle at 30% 92%, var(--backdrop-c), transparent 55%),
       var(--background);
     background-attachment: fixed;
+  }
+}
+
+/* Print isolation: mark exactly one element `.print-area` (e.g. a receipt)
+   and only it survives printing — the rest of the app (sidebar, dialog
+   chrome, everything) is hidden regardless of where in the tree it sits. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: fixed;
+    inset: 0;
+    padding: 0.5in;
+    background: white;
+    color: black;
   }
 }

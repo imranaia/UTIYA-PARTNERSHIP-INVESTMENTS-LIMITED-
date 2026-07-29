@@ -1,5 +1,5 @@
 import { requireModule, getModulePermission } from "@/lib/auth/session";
-import { listActiveBranches } from "@/lib/db/branches";
+import { listActiveBranches, getBranch } from "@/lib/db/branches";
 import { listLoanCollectorsForBranch, listActiveUsersForBranch } from "@/lib/db/users";
 import { listDailyEntryRows } from "@/lib/db/transactions";
 import { listDutyAssignments } from "@/lib/db/dutyAssignments";
@@ -34,13 +34,14 @@ export default async function TransactionsPage({
   const collectors = branchId ? await listLoanCollectorsForBranch(branchId) : [];
   const collectorId = collectorIdParam ? Number(collectorIdParam) : undefined;
 
-  const [rows, dutyUsers, dutyAssignments] = branchId
+  const [rows, dutyUsers, dutyAssignments, branch] = branchId
     ? await Promise.all([
         listDailyEntryRows({ branchId, collectorId, date: transactionDate }),
         listActiveUsersForBranch(branchId),
         listDutyAssignments({ branchId, date: transactionDate }),
+        getBranch(branchId),
       ])
-    : [[], [], []];
+    : [[], [], [], null];
 
   return (
     <div className="space-y-4">
@@ -105,7 +106,14 @@ export default async function TransactionsPage({
             assignments={dutyAssignments}
             readOnly={!canEdit}
           />
-          <DailyTransactionsTable rows={rows} transactionDate={transactionDate} branchId={branchId} readOnly={!canCreate} />
+          <DailyTransactionsTable
+            rows={rows}
+            transactionDate={transactionDate}
+            branchId={branchId}
+            readOnly={!canCreate}
+            branchName={branch?.name ?? ""}
+            preparedBy={user.fullName}
+          />
         </>
       )}
     </div>

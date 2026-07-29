@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Alkair Microcredit Limited",
+  title: "Alkhair Microcredit Limited",
   description: "Daily Investment Operations System",
 };
 

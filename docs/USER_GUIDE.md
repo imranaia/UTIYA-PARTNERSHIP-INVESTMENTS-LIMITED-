@@ -1,4 +1,4 @@
-# Alkair Microcredit Limited — User Guide
+# Alkhair Microcredit Limited — User Guide
 
 A plain-language walkthrough of every screen in the system, organized the
 way you'll actually use it day to day.
