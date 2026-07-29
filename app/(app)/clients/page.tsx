@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Plus, AlertTriangle } from "lucide-react";
-import { requireModule } from "@/lib/auth/session";
+import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { listClients } from "@/lib/db/clients";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 
 export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const user = await requireModule("clients", "view");
+  const { canCreate } = await getModulePermission("clients");
   const { q } = await searchParams;
   const isSuperAdmin = user.roleKey === "super_admin";
 
@@ -26,12 +27,14 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
               Defaults
             </Link>
           </Button>
-          <Button asChild size="sm" className="gap-1.5">
-            <Link href="/clients/new">
-              <Plus className="size-4" />
-              Add Client
-            </Link>
-          </Button>
+          {canCreate && (
+            <Button asChild size="sm" className="gap-1.5">
+              <Link href="/clients/new">
+                <Plus className="size-4" />
+                Add Client
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
