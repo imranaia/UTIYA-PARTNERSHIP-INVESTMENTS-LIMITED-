@@ -96,7 +96,7 @@ function ClientCard({
   }, [state, row.fullName]);
 
   return (
-    <GlassPanel className={cn("flex h-fit flex-col overflow-hidden p-0", open && "sm:col-span-2 xl:col-span-3")}>
+    <GlassPanel className={cn("flex h-fit flex-col overflow-hidden p-0", open && "sm:col-span-2 lg:col-span-3")}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -270,7 +270,13 @@ export function DailyTransactionsTable({
                   onClick={() => setFilter(f.key)}
                 >
                   {f.label}
-                  <Badge variant="outline" className="h-4 min-w-4 px-1 text-[10px]">
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "h-4 min-w-4 px-1 text-[10px]",
+                      filter === f.key && "border-primary-foreground/30 text-primary-foreground",
+                    )}
+                  >
                     {counts[f.key] ?? 0}
                   </Badge>
                 </Button>
@@ -294,7 +300,7 @@ export function DailyTransactionsTable({
           {rows.length === 0 ? "No active clients for this branch/collector." : "No clients match this filter."}
         </GlassPanel>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filteredRows.map((r) => (
             <ClientCard
               key={r.clientId}
