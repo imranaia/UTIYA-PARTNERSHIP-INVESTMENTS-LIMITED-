@@ -25,7 +25,7 @@ export function Logo({ className, iconOnly = false }: { className?: string; icon
       </svg>
       {!iconOnly && (
         <span className="text-base font-semibold tracking-tight leading-none">
-          UTIYA <span className="font-normal text-muted-foreground">Partnership</span>
+          Alkair <span className="font-normal text-muted-foreground">Microcredit</span>
         </span>
       )}
     </div>

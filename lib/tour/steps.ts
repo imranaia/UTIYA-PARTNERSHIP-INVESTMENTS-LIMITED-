@@ -13,7 +13,7 @@ export type TourStep = {
 export const TOUR_STEPS: TourStep[] = [
   {
     id: "welcome",
-    title: "Welcome to UTIYA",
+    title: "Welcome to Alkair Microcredit",
     body: "A quick walkthrough of every screen — about a minute per stop. Use Next/Back to move around, or Skip tour to stop any time. You can always replay this from your Profile page.",
   },
   {
