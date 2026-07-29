@@ -40,7 +40,7 @@ export default async function BankReconciliationPage() {
         </div>
       </div>
 
-      <GlassPanel className="overflow-hidden p-0">
+      <GlassPanel data-tour="tour-reconciliation" className="overflow-hidden p-0">
         <Table>
           <TableHeader>
             <TableRow>

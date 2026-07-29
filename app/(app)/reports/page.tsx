@@ -86,7 +86,7 @@ export default async function ReportsPage({
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold">Reports</h1>
-        <div className="flex gap-2">
+        <div data-tour="tour-reports-links" className="flex gap-2">
           <Button asChild variant="secondary" size="sm" className="gap-1.5">
             <Link href="/reports/portfolio-tracker">
               <TrendingUp className="size-4" />
@@ -161,7 +161,7 @@ export default async function ReportsPage({
         </form>
       </GlassPanel>
 
-      <GlassPanel className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-3 lg:grid-cols-7">
+      <GlassPanel data-tour="tour-reports-summary" className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-3 lg:grid-cols-7">
         <StatTile label="Active Clients" value={portfolio.activeClients.toLocaleString()} />
         <StatTile label="Active Loans Outstanding" value={money(loanPortfolio.activeLoanBalance)} />
         <StatTile label="Total Capital (Savings)" value={money(portfolio.totalSavings)} />

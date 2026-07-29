@@ -258,7 +258,7 @@ export function DailyTransactionsTable({
     <div>
       {rows.length > 0 && (
         <>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div data-tour="tour-txn-filters" className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-1.5">
               {FILTERS.map((f) => (
                 <Button
@@ -300,7 +300,7 @@ export function DailyTransactionsTable({
           {rows.length === 0 ? "No active clients for this branch/collector." : "No clients match this filter."}
         </GlassPanel>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div data-tour="tour-txn-cards" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filteredRows.map((r) => (
             <ClientCard
               key={r.clientId}

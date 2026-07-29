@@ -15,6 +15,7 @@ import {
 import { MobileSidebar } from "./MobileSidebar";
 import type { SidebarModule } from "./Sidebar";
 import { logout } from "@/app/(public)/login/actions";
+import { TourIconTrigger } from "@/components/tour/TourTriggerButton";
 import Link from "next/link";
 
 function initials(name: string) {
@@ -50,6 +51,7 @@ export function TopBar({
       </div>
 
       <div className="flex items-center gap-1.5">
+        <TourIconTrigger />
         <Button
           variant="ghost"
           size="icon"

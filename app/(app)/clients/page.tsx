@@ -19,7 +19,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold">Clients</h1>
-        <div className="flex gap-2">
+        <div data-tour="tour-clients-actions" className="flex gap-2">
           <Button asChild variant="secondary" size="sm" className="gap-1.5">
             <Link href="/clients/defaults">
               <AlertTriangle className="size-4" />

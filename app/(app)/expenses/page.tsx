@@ -50,7 +50,7 @@ export default async function ExpensesPage({
         )}
       </div>
 
-      <GlassPanel className="p-4">
+      <GlassPanel data-tour="tour-expenses" className="p-4">
         <form className="flex flex-wrap items-end gap-3">
           {isSuperAdmin && (
             <div className="space-y-1.5">

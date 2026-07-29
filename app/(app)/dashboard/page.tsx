@@ -117,7 +117,7 @@ export default async function DashboardPage() {
         </p>
       </GlassPanel>
 
-      <GlassPanel className="grid grid-cols-2 gap-6 p-6 sm:grid-cols-3 lg:grid-cols-6">
+      <GlassPanel data-tour="tour-dashboard-stats" className="grid grid-cols-2 gap-6 p-6 sm:grid-cols-3 lg:grid-cols-6">
         <StatTile icon={Users} label="Active Clients" value={portfolio.activeClients.toLocaleString()} />
         <StatTile icon={Wallet} label="Active Loans Outstanding" value={money(loanPortfolio.activeLoanBalance)} />
         <StatTile icon={PiggyBank} label="Total Capital (Savings)" value={money(portfolio.totalSavings)} />
@@ -172,7 +172,7 @@ export default async function DashboardPage() {
           )}
         </GlassPanel>
 
-        <GlassPanel className="p-6">
+        <GlassPanel data-tour="tour-dashboard-duty" className="p-6">
           <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
             <ListChecks className="size-4" />
             Duty Roster — {reportDate}

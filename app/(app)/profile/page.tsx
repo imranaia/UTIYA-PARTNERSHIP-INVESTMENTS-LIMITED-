@@ -3,6 +3,7 @@ import { getUserProfile } from "@/lib/db/users";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Badge } from "@/components/ui/badge";
 import { ChangePasswordForm } from "@/app/(public)/change-password/ChangePasswordForm";
+import { TourReplayButton } from "@/components/tour/TourTriggerButton";
 
 function initials(name: string) {
   return name
@@ -26,7 +27,7 @@ export default async function ProfilePage() {
     <div className="mx-auto max-w-2xl space-y-4">
       <h1 className="text-lg font-semibold">Profile</h1>
 
-      <GlassPanel className="flex items-center gap-4 p-6">
+      <GlassPanel data-tour="tour-profile" className="flex items-center gap-4 p-6">
         <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary/15 text-lg font-semibold text-primary">
           {initials(profile?.fullName ?? user.fullName)}
         </div>
@@ -38,6 +39,7 @@ export default async function ProfilePage() {
             {profile?.branchName && <Badge variant="outline">{profile.branchName}</Badge>}
           </div>
         </div>
+        <TourReplayButton />
       </GlassPanel>
 
       <GlassPanel className="p-6">

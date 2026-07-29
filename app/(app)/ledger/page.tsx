@@ -58,7 +58,7 @@ export default async function LedgerPage({
         Week Summary report.
       </p>
 
-      <GlassPanel className="p-4">
+      <GlassPanel data-tour="tour-ledger" className="p-4">
         <form className="flex flex-wrap items-end gap-3">
           {isSuperAdmin && (
             <div className="space-y-1.5">

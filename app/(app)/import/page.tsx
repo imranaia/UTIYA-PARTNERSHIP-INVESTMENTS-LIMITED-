@@ -21,7 +21,7 @@ export default async function ImportPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      <div data-tour="tour-import" className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold">Excel Import</h1>
         <Button asChild variant="secondary" size="sm" className="gap-1.5">
           <Link href="/import/template">

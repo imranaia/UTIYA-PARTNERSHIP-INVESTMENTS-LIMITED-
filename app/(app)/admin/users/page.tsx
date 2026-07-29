@@ -29,7 +29,7 @@ export default async function UsersPage() {
         <NewUserDialog roles={assignableRoles} branches={branches} showBranchSelect={isSuperAdmin} />
       </div>
 
-      <GlassPanel className="overflow-hidden p-0">
+      <GlassPanel data-tour="tour-admin-users" className="overflow-hidden p-0">
         <Table>
           <TableHeader>
             <TableRow>
