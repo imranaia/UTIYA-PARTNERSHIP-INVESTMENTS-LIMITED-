@@ -6,6 +6,7 @@ import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { NewUserDialog } from "./NewUserDialog";
+import { EditUserDialog } from "./EditUserDialog";
 import { UserRowActions } from "./UserRowActions";
 
 const BRANCH_ADMIN_ASSIGNABLE_ROLE_KEYS = ["loan_collector", "expense_officer", "viewer"];
@@ -52,7 +53,19 @@ export default async function UsersPage() {
                   <Badge variant={u.isActive ? "default" : "secondary"}>{u.isActive ? "Active" : "Inactive"}</Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <UserRowActions userId={u.id} isActive={u.isActive} />
+                  <div className="flex justify-end">
+                    <EditUserDialog
+                      user={{ id: u.id, username: u.username, fullName: u.fullName, phone: u.phone, roleId: u.roleId, branchId: u.branchId }}
+                      roles={
+                        assignableRoles.some((r) => r.id === u.roleId)
+                          ? assignableRoles
+                          : [...assignableRoles, { id: u.roleId, name: u.roleName }]
+                      }
+                      branches={branches}
+                      showBranchSelect={isSuperAdmin}
+                    />
+                    <UserRowActions userId={u.id} isActive={u.isActive} />
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

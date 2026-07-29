@@ -112,8 +112,10 @@ export async function listUsersForBranch(branchId: number | null) {
       fullName: users.fullName,
       phone: users.phone,
       isActive: users.isActive,
+      roleId: users.roleId,
       roleName: roles.name,
       roleKey: roles.key,
+      branchId: users.branchId,
       branchName: branches.name,
       lastLoginAt: users.lastLoginAt,
     })
@@ -123,6 +125,26 @@ export async function listUsersForBranch(branchId: number | null) {
 
   if (branchId === null) return query;
   return query.where(eq(users.branchId, branchId));
+}
+
+export async function getUserById(userId: number) {
+  const db = getDb();
+  const [row] = await db
+    .select({
+      id: users.id,
+      username: users.username,
+      fullName: users.fullName,
+      phone: users.phone,
+      isActive: users.isActive,
+      roleId: users.roleId,
+      roleKey: roles.key,
+      branchId: users.branchId,
+      tokenVersion: users.tokenVersion,
+    })
+    .from(users)
+    .innerJoin(roles, eq(roles.id, users.roleId))
+    .where(eq(users.id, userId));
+  return row ?? null;
 }
 
 export async function createUser(data: {
@@ -176,6 +198,54 @@ export async function resetUserPassword(userId: number, forSelf = false) {
   return { user, tempPassword };
 }
 
+// Admin-driven edit of another (or their own) user record. Username/role/branch
+// are all cached in the session cookie, so changing any of them bumps
+// token_version to force that user's session to re-validate against the DB
+// on their next request (see requireActiveUser) and pick up the change.
+export async function updateUser(
+  userId: number,
+  data: { username: string; fullName: string; phone?: string; roleId: number; branchId: number | null; bumpTokenVersion: boolean },
+) {
+  const db = getDb();
+  const [user] = await db
+    .update(users)
+    .set({
+      username: data.username.toLowerCase(),
+      fullName: data.fullName,
+      phone: data.phone || null,
+      roleId: data.roleId,
+      branchId: data.branchId,
+      ...(data.bumpTokenVersion ? { tokenVersion: sql`${users.tokenVersion} + 1` } : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId))
+    .returning();
+  return user;
+}
+
+// Self-service edit from the Profile page. Username is included here too —
+// changing it bumps token_version (see updateUser above) since it's cached
+// in the session cookie; the caller re-seals the session in the same request
+// so the user isn't logged out mid-action.
+export async function updateOwnProfile(
+  userId: number,
+  data: { username: string; fullName: string; phone?: string; bumpTokenVersion: boolean },
+) {
+  const db = getDb();
+  const [user] = await db
+    .update(users)
+    .set({
+      username: data.username.toLowerCase(),
+      fullName: data.fullName,
+      phone: data.phone || null,
+      ...(data.bumpTokenVersion ? { tokenVersion: sql`${users.tokenVersion} + 1` } : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId))
+    .returning();
+  return user;
+}
+
 export async function setUserActive(userId: number, isActive: boolean) {
   const db = getDb();
   const [user] = await db
@@ -186,11 +256,15 @@ export async function setUserActive(userId: number, isActive: boolean) {
   return user;
 }
 
-export async function usernameExists(username: string) {
+export async function usernameExists(username: string, excludeUserId?: number) {
   const db = getDb();
+  const conditions = [eq(users.username, username.toLowerCase())];
+  if (excludeUserId !== undefined) {
+    conditions.push(sql`${users.id} != ${excludeUserId}`);
+  }
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(users)
-    .where(eq(users.username, username.toLowerCase()));
+    .where(and(...conditions));
   return (row?.count ?? 0) > 0;
 }

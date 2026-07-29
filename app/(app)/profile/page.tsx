@@ -4,6 +4,7 @@ import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Badge } from "@/components/ui/badge";
 import { ChangePasswordForm } from "@/app/(public)/change-password/ChangePasswordForm";
 import { TourReplayButton } from "@/components/tour/TourTriggerButton";
+import { EditProfileForm } from "./EditProfileForm";
 
 function initials(name: string) {
   return name
@@ -44,16 +45,12 @@ export default async function ProfilePage() {
 
       <GlassPanel className="p-6">
         <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Account details</h2>
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-          <div>
-            <dt className="text-xs text-muted-foreground">Phone</dt>
-            <dd>{profile?.phone || "—"}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">Last login</dt>
-            <dd>{formatDateTime(profile?.lastLoginAt ?? null)}</dd>
-          </div>
-        </dl>
+        <EditProfileForm
+          username={profile?.username ?? user.username}
+          fullName={profile?.fullName ?? user.fullName}
+          phone={profile?.phone ?? null}
+        />
+        <p className="mt-4 text-xs text-muted-foreground">Last login: {formatDateTime(profile?.lastLoginAt ?? null)}</p>
       </GlassPanel>
 
       <GlassPanel className="p-6">
