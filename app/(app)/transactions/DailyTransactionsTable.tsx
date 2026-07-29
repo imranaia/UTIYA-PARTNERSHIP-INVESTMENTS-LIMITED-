@@ -71,10 +71,29 @@ function StatusBadge({ status }: { status: PaymentStatus }) {
   );
 }
 
-function ClientCard({ row, readOnly, selectedDay }: { row: Row; readOnly: boolean; selectedDay: number }) {
+function ClientCard({
+  row,
+  readOnly,
+  selectedDay,
+  transactionDate,
+  branchId,
+}: {
+  row: Row;
+  readOnly: boolean;
+  selectedDay: number;
+  transactionDate: string;
+  branchId: number;
+}) {
   const [open, setOpen] = useState(false);
+  const [state, formAction, pending] = useActionState(saveDailyTransactionsAction, initialState);
   const filledFields = FIELDS.filter((f) => Number(row[f.key] ?? 0) > 0);
   const offDay = selectedDay !== row.enrollmentDay;
+
+  useEffect(() => {
+    if (state === initialState) return;
+    if (state.error) toast.error(state.error);
+    else if (state.savedCount > 0) toast.success(`Saved ${row.fullName}.`);
+  }, [state, row.fullName]);
 
   return (
     <GlassPanel className={cn("flex h-fit flex-col overflow-hidden p-0", open && "sm:col-span-2 xl:col-span-3")}>
@@ -112,13 +131,14 @@ function ClientCard({ row, readOnly, selectedDay }: { row: Row; readOnly: boolea
         <ChevronDown className={cn("size-5 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
       </button>
 
-      <div className={cn("border-t border-border px-4 pt-3 pb-4", !open && "hidden")}>
+      <form action={formAction} className={cn("border-t border-border px-4 pt-3 pb-4", !open && "hidden")}>
+        <input type="hidden" name="transactionDate" value={transactionDate} />
+        <input type="hidden" name="branchId" value={branchId} />
+        <input type="hidden" name="clientIds" value={String(row.clientId)} />
         <div
           className={cn(
             "mb-3 space-y-2 rounded-lg px-3 py-2 text-xs",
-            offDay
-              ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
-              : "bg-muted/50 text-muted-foreground",
+            offDay ? "bg-amber-500/10 text-amber-700 dark:text-amber-400" : "bg-muted/50 text-muted-foreground",
           )}
         >
           <p>
@@ -176,7 +196,14 @@ function ClientCard({ row, readOnly, selectedDay }: { row: Row; readOnly: boolea
             />
           </div>
         </div>
-      </div>
+        {!readOnly && (
+          <div className="mt-3 flex justify-end">
+            <Button type="submit" size="sm" disabled={pending}>
+              {pending ? "Saving…" : "Save"}
+            </Button>
+          </div>
+        )}
+      </form>
     </GlassPanel>
   );
 }
@@ -201,17 +228,10 @@ export function DailyTransactionsTable({
   branchId: number;
   readOnly: boolean;
 }) {
-  const [state, formAction, pending] = useActionState(saveDailyTransactionsAction, initialState);
   const [search, setSearch] = useState("");
   // Default to "who's paying today" rather than dumping the entire roster on
   // load — the collector's immediate question when opening this page.
   const [filter, setFilter] = useState<"all" | PaymentStatus>("due_today");
-
-  useEffect(() => {
-    if (state === initialState) return;
-    if (state.error) toast.error(state.error);
-    else if (state.savedCount > 0) toast.success(`Saved ${state.savedCount} client${state.savedCount === 1 ? "" : "s"}.`);
-  }, [state]);
 
   const selectedDay = useMemo(() => {
     const d = new Date(transactionDate + "T00:00:00Z");
@@ -234,18 +254,8 @@ export function DailyTransactionsTable({
     });
   }, [rows, search, filter]);
 
-  const SaveButton = (
-    <Button type="submit" disabled={pending}>
-      {pending ? "Saving…" : "Save all"}
-    </Button>
-  );
-
   return (
-    <form action={formAction}>
-      <input type="hidden" name="transactionDate" value={transactionDate} />
-      <input type="hidden" name="branchId" value={branchId} />
-      <input type="hidden" name="clientIds" value={rows.map((r) => r.clientId).join(",")} />
-
+    <div>
       {rows.length > 0 && (
         <>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -266,7 +276,6 @@ export function DailyTransactionsTable({
                 </Button>
               ))}
             </div>
-            {!readOnly && SaveButton}
           </div>
           <div className="relative mb-3">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -287,14 +296,17 @@ export function DailyTransactionsTable({
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {filteredRows.map((r) => (
-            <ClientCard key={r.clientId} row={r} readOnly={readOnly} selectedDay={selectedDay} />
+            <ClientCard
+              key={r.clientId}
+              row={r}
+              readOnly={readOnly}
+              selectedDay={selectedDay}
+              transactionDate={transactionDate}
+              branchId={branchId}
+            />
           ))}
         </div>
       )}
-
-      {!readOnly && rows.length > 0 && (
-        <div className="mt-3 flex justify-end">{SaveButton}</div>
-      )}
-    </form>
+    </div>
   );
 }
