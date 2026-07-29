@@ -12,6 +12,7 @@ import {
 } from "@/lib/db/reports";
 import { getOpenDefaultCount } from "@/lib/db/clientDefaults";
 import { GlassPanel } from "@/components/layout/GlassPanel";
+import { LinkCarousel } from "@/components/layout/LinkCarousel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -85,51 +86,51 @@ export default async function ReportsPage({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold">Reports</h1>
-        <div data-tour="tour-reports-links" className="flex gap-2">
-          <Button asChild variant="secondary" size="sm" className="gap-1.5">
+        <h1 className="shrink-0 text-lg font-semibold">Reports</h1>
+        <LinkCarousel data-tour="tour-reports-links" className="max-w-full">
+          <Button asChild variant="secondary" size="sm" className="shrink-0 gap-1.5">
             <Link href="/reports/portfolio-tracker">
               <TrendingUp className="size-4" />
               Portfolio Tracker
             </Link>
           </Button>
-          <Button asChild variant="secondary" size="sm" className="gap-1.5">
+          <Button asChild variant="secondary" size="sm" className="shrink-0 gap-1.5">
             <Link href="/reports/supplementary">
               <CalendarClock className="size-4" />
               Supplementary
             </Link>
           </Button>
-          <Button asChild variant="secondary" size="sm" className="gap-1.5">
+          <Button asChild variant="secondary" size="sm" className="shrink-0 gap-1.5">
             <Link href="/reports/dormant-clients">
               <MoonStar className="size-4" />
               Dormant
             </Link>
           </Button>
-          <Button asChild variant="secondary" size="sm" className="gap-1.5">
+          <Button asChild variant="secondary" size="sm" className="shrink-0 gap-1.5">
             <Link href="/reports/client-statement">
               <UserSearch className="size-4" />
               Client Statement
             </Link>
           </Button>
-          <Button asChild variant="secondary" size="sm" className="gap-1.5">
+          <Button asChild variant="secondary" size="sm" className="shrink-0 gap-1.5">
             <Link href="/reports/custom">
               <SlidersHorizontal className="size-4" />
               Custom Report
             </Link>
           </Button>
-          <Button asChild variant="secondary" size="sm" className="gap-1.5">
+          <Button asChild variant="secondary" size="sm" className="shrink-0 gap-1.5">
             <Link href="/reports/loan-maturity">
               <RefreshCcw className="size-4" />
               Loan Maturity
             </Link>
           </Button>
-          <Button asChild variant="secondary" size="sm" className="gap-1.5">
+          <Button asChild variant="secondary" size="sm" className="shrink-0 gap-1.5">
             <Link href="/reports/week-summary">
               <BookOpen className="size-4" />
               Week Summary
             </Link>
           </Button>
-        </div>
+        </LinkCarousel>
       </div>
 
       <GlassPanel className="p-4">
