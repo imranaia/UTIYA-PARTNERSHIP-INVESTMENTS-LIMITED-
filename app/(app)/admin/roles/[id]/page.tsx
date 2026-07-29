@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireModule } from "@/lib/auth/session";
+import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { getRole, getRolePermissionMatrix } from "@/lib/db/roles";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { BackLink } from "@/components/layout/BackLink";
@@ -10,6 +10,7 @@ import { SubmitButton } from "./SubmitButton";
 
 export default async function RolePermissionsPage({ params }: { params: Promise<{ id: string }> }) {
   await requireModule("roles", "view");
+  const { canEdit } = await getModulePermission("roles");
   const { id } = await params;
   const roleId = Number(id);
   if (!Number.isInteger(roleId)) notFound();
@@ -18,7 +19,8 @@ export default async function RolePermissionsPage({ params }: { params: Promise<
   if (!role) notFound();
 
   const matrix = await getRolePermissionMatrix(roleId);
-  const isLocked = role.key === "super_admin";
+  const isSuperAdminRole = role.key === "super_admin";
+  const isLocked = isSuperAdminRole || !canEdit;
   const action = updateRolePermissionsAction.bind(null, roleId);
 
   return (
@@ -33,10 +35,13 @@ export default async function RolePermissionsPage({ params }: { params: Promise<
         )}
       </div>
 
-      {isLocked && (
+      {isSuperAdminRole && (
         <p className="text-sm text-muted-foreground">
           The Super Admin role always has full access to every module and cannot be changed.
         </p>
+      )}
+      {!isSuperAdminRole && !canEdit && (
+        <p className="text-sm text-muted-foreground">You don&apos;t have permission to change role permissions.</p>
       )}
 
       <form action={isLocked ? undefined : action}>

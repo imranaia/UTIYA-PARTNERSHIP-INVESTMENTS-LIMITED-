@@ -1,4 +1,4 @@
-import { requireModule } from "@/lib/auth/session";
+import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { listUsersForBranch } from "@/lib/db/users";
 import { listRoles } from "@/lib/db/roles";
 import { listActiveBranches } from "@/lib/db/branches";
@@ -13,6 +13,7 @@ const BRANCH_ADMIN_ASSIGNABLE_ROLE_KEYS = ["loan_collector", "expense_officer", 
 
 export default async function UsersPage() {
   const sessionUser = await requireModule("users", "view");
+  const { canCreate, canEdit } = await getModulePermission("users");
   const isSuperAdmin = sessionUser.roleKey === "super_admin";
 
   const [users, allRoles, branches] = await Promise.all([
@@ -27,7 +28,7 @@ export default async function UsersPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">Users</h1>
-        <NewUserDialog roles={assignableRoles} branches={branches} showBranchSelect={isSuperAdmin} />
+        {canCreate && <NewUserDialog roles={assignableRoles} branches={branches} showBranchSelect={isSuperAdmin} />}
       </div>
 
       <GlassPanel data-tour="tour-admin-users" className="overflow-hidden p-0">
@@ -53,19 +54,21 @@ export default async function UsersPage() {
                   <Badge variant={u.isActive ? "default" : "secondary"}>{u.isActive ? "Active" : "Inactive"}</Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end">
-                    <EditUserDialog
-                      user={{ id: u.id, username: u.username, fullName: u.fullName, phone: u.phone, roleId: u.roleId, branchId: u.branchId }}
-                      roles={
-                        assignableRoles.some((r) => r.id === u.roleId)
-                          ? assignableRoles
-                          : [...assignableRoles, { id: u.roleId, name: u.roleName }]
-                      }
-                      branches={branches}
-                      showBranchSelect={isSuperAdmin}
-                    />
-                    <UserRowActions userId={u.id} isActive={u.isActive} />
-                  </div>
+                  {canEdit && (
+                    <div className="flex justify-end">
+                      <EditUserDialog
+                        user={{ id: u.id, username: u.username, fullName: u.fullName, phone: u.phone, roleId: u.roleId, branchId: u.branchId }}
+                        roles={
+                          assignableRoles.some((r) => r.id === u.roleId)
+                            ? assignableRoles
+                            : [...assignableRoles, { id: u.roleId, name: u.roleName }]
+                        }
+                        branches={branches}
+                        showBranchSelect={isSuperAdmin}
+                      />
+                      <UserRowActions userId={u.id} isActive={u.isActive} />
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

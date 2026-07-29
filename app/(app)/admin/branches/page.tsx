@@ -1,19 +1,21 @@
-import { requireModule } from "@/lib/auth/session";
+import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { listBranches } from "@/lib/db/branches";
 import { GlassPanel } from "@/components/layout/GlassPanel";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { NewBranchDialog } from "./NewBranchDialog";
 import { BranchActiveToggle } from "./BranchActiveToggle";
 
 export default async function BranchesPage() {
   await requireModule("branches", "view");
+  const { canCreate, canEdit } = await getModulePermission("branches");
   const branches = await listBranches();
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">Branches</h1>
-        <NewBranchDialog />
+        {canCreate && <NewBranchDialog />}
       </div>
 
       <GlassPanel className="overflow-hidden p-0">
@@ -35,7 +37,11 @@ export default async function BranchesPage() {
                 <TableCell className="text-muted-foreground">{b.address || "—"}</TableCell>
                 <TableCell className="text-muted-foreground">{b.phone || "—"}</TableCell>
                 <TableCell>
-                  <BranchActiveToggle branchId={b.id} isActive={b.isActive} />
+                  {canEdit ? (
+                    <BranchActiveToggle branchId={b.id} isActive={b.isActive} />
+                  ) : (
+                    <Badge variant={b.isActive ? "default" : "secondary"}>{b.isActive ? "Active" : "Inactive"}</Badge>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

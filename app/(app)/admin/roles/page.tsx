@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { requireModule } from "@/lib/auth/session";
+import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { listRoles } from "@/lib/db/roles";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Badge } from "@/components/ui/badge";
@@ -8,13 +8,14 @@ import { NewRoleDialog } from "./NewRoleDialog";
 
 export default async function RolesPage() {
   await requireModule("roles", "view");
+  const { canCreate } = await getModulePermission("roles");
   const roles = await listRoles();
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">Roles</h1>
-        <NewRoleDialog />
+        {canCreate && <NewRoleDialog />}
       </div>
 
       <GlassPanel className="divide-y divide-border overflow-hidden p-0">
