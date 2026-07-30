@@ -2,11 +2,12 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, Search, CheckCircle2, Clock, AlertTriangle, CalendarClock } from "lucide-react";
+import { Search, CheckCircle2, Clock, AlertTriangle, CalendarClock } from "lucide-react";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { saveDailyTransactionsAction, type DailyTransactionsState } from "./actions";
 import { ReceiptDialog } from "./ReceiptDialog";
@@ -61,13 +62,19 @@ function money(n: string | number) {
   return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function StatusBadge({ status }: { status: PaymentStatus }) {
+function StatusBadge({ status, compact }: { status: PaymentStatus; compact?: boolean }) {
   const cfg = STATUS_CONFIG[status];
   const Icon = cfg.icon;
   return (
-    <span className={cn("inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs", cfg.className)}>
-      <Icon className="size-3" />
-      {cfg.label}
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs",
+        compact && "px-1.5 py-0.5 text-[10px]",
+        cfg.className,
+      )}
+    >
+      <Icon className={compact ? "size-2.5" : "size-3"} />
+      {compact ? cfg.label.replace(" (Supplementary)", "") : cfg.label}
     </span>
   );
 }
@@ -97,141 +104,142 @@ function ClientCard({
   useEffect(() => {
     if (state === initialState) return;
     if (state.error) toast.error(state.error);
-    else if (state.savedCount > 0) toast.success(`Saved ${row.fullName}.`);
+    else if (state.savedCount > 0) {
+      toast.success(`Saved ${row.fullName}.`);
+      setOpen(false);
+    }
   }, [state, row.fullName]);
 
   return (
-    <GlassPanel className={cn("flex h-fit flex-col overflow-hidden p-0", open && "sm:col-span-2 lg:col-span-3")}>
-      <div className="flex w-full items-start justify-between gap-3 px-4 py-3.5 hover:bg-accent/40">
-        <button type="button" onClick={() => setOpen((v) => !v)} className="min-w-0 flex-1 text-left">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-base font-semibold">{row.fullName}</span>
-          </div>
-          <div className="mt-0.5 text-xs text-muted-foreground">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <button type="button" onClick={() => setOpen(true)} className="text-left">
+        <GlassPanel className="flex h-full flex-col gap-1 p-2.5 transition-colors hover:bg-accent/40">
+          <p className="truncate text-sm font-semibold">{row.fullName}</p>
+          <p className="truncate text-[11px] text-muted-foreground">{row.clientCode}</p>
+          <StatusBadge status={row.paymentStatus} compact />
+        </GlassPanel>
+      </button>
+
+      <DialogContent className="glass-panel-strong max-h-[85vh] overflow-y-auto border-none sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex flex-wrap items-center gap-2">
+            {row.fullName}
+            <StatusBadge status={row.paymentStatus} />
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div className="text-xs text-muted-foreground">
             {row.clientCode}
             {row.groupName ? ` · ${row.groupName}` : ""}
           </div>
-          <div className="mt-0.5 text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground">
             Pays {WEEKDAY_NAMES[row.enrollmentDay]} · B/F {money(row.savingsBalanceBf)}
             {row.paymentId && <span className="font-mono"> · {row.paymentId}</span>}
           </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            <StatusBadge status={row.paymentStatus} />
-            {row.supplementaryOverride === "not_supplementary" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                Override: off
-              </span>
-            )}
-            {filledFields.length > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary">
-                {filledFields.length} entered
-              </span>
-            )}
-          </div>
-        </button>
-        <div className="flex shrink-0 items-center gap-0.5">
-          {filledFields.length > 0 && (
-            <div onClick={(e) => e.stopPropagation()}>
-              <ReceiptDialog
-                clientName={row.fullName}
-                clientCode={row.clientCode}
-                groupName={row.groupName}
-                branchName={branchName}
-                transactionDate={transactionDate}
-                paymentId={row.paymentId}
-                notes={row.notes}
-                preparedBy={preparedBy}
-                received={FIELDS.filter((f) => f.direction === "received" && Number(row[f.key] ?? 0) > 0).map((f) => ({
-                  label: f.label,
-                  value: Number(row[f.key]),
-                }))}
-                paidOut={FIELDS.filter((f) => f.direction === "paidOut" && Number(row[f.key] ?? 0) > 0).map((f) => ({
-                  label: f.label,
-                  value: Number(row[f.key]),
-                }))}
-              />
-            </div>
-          )}
-          <button type="button" onClick={() => setOpen((v) => !v)} className="p-1">
-            <ChevronDown className={cn("size-5 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
-          </button>
-        </div>
-      </div>
 
-      <form action={formAction} className={cn("border-t border-border px-4 pt-3 pb-4", !open && "hidden")}>
-        <input type="hidden" name="transactionDate" value={transactionDate} />
-        <input type="hidden" name="branchId" value={branchId} />
-        <input type="hidden" name="clientIds" value={String(row.clientId)} />
-        <div
-          className={cn(
-            "mb-3 space-y-2 rounded-lg px-3 py-2 text-xs",
-            offDay ? "bg-amber-500/10 text-amber-700 dark:text-amber-400" : "bg-muted/50 text-muted-foreground",
-          )}
-        >
-          <p>
-            {row.fullName}&apos;s assigned collection day is <strong>{WEEKDAY_NAMES[row.enrollmentDay]}</strong>.
-            {offDay ? (
-              <>
-                {" "}
-                Today ({WEEKDAY_NAMES[selectedDay]}) is a different day, so a payment recorded here will be counted as a{" "}
-                <strong>Supplementary</strong> payment automatically.
-              </>
-            ) : (
-              " Today matches their assigned day, so a payment recorded here counts as on-time — this override isn't needed."
-            )}
-          </p>
-          <label className={cn("flex items-center gap-1.5", !offDay && "opacity-50")}>
-            <input
-              type="checkbox"
-              name={`sup_${row.clientId}`}
-              defaultChecked={row.supplementaryOverride === "not_supplementary"}
-              disabled={readOnly || !offDay}
-              className="size-3.5"
-            />
-            This was actually collected on time — data just entered late. Don&apos;t mark as Supplementary.
-          </label>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {FIELDS.map((f) => (
-            <div key={f.prefix} className="space-y-1">
-              <label className="text-xs text-muted-foreground" htmlFor={`${f.prefix}_${row.clientId}`}>
-                {f.label}
-              </label>
-              <Input
-                id={`${f.prefix}_${row.clientId}`}
-                type="number"
-                min="0"
-                step="0.01"
-                inputMode="decimal"
-                name={`${f.prefix}_${row.clientId}`}
-                defaultValue={row[f.key] ?? ""}
-                disabled={readOnly}
-                className="h-9 w-full"
-              />
+          {filledFields.length > 0 && (
+            <div className="flex items-center justify-between gap-2 rounded-lg bg-muted/50 px-3 py-2">
+              <span className="text-xs text-muted-foreground">{filledFields.length} field(s) entered today</span>
+              <div onClick={(e) => e.stopPropagation()}>
+                <ReceiptDialog
+                  clientName={row.fullName}
+                  clientCode={row.clientCode}
+                  groupName={row.groupName}
+                  branchName={branchName}
+                  transactionDate={transactionDate}
+                  paymentId={row.paymentId}
+                  notes={row.notes}
+                  preparedBy={preparedBy}
+                  received={FIELDS.filter((f) => f.direction === "received" && Number(row[f.key] ?? 0) > 0).map((f) => ({
+                    label: f.label,
+                    value: Number(row[f.key]),
+                  }))}
+                  paidOut={FIELDS.filter((f) => f.direction === "paidOut" && Number(row[f.key] ?? 0) > 0).map((f) => ({
+                    label: f.label,
+                    value: Number(row[f.key]),
+                  }))}
+                />
+              </div>
             </div>
-          ))}
-          <div className="space-y-1 sm:col-span-2 lg:col-span-4">
-            <label className="text-xs text-muted-foreground" htmlFor={`nt_${row.clientId}`}>
-              Notes
-            </label>
-            <Input
-              id={`nt_${row.clientId}`}
-              name={`nt_${row.clientId}`}
-              defaultValue={row.notes ?? ""}
-              disabled={readOnly}
-              className="h-9 w-full"
-            />
-          </div>
+          )}
+
+          <form action={formAction} className="space-y-3 border-t border-border pt-3">
+            <input type="hidden" name="transactionDate" value={transactionDate} />
+            <input type="hidden" name="branchId" value={branchId} />
+            <input type="hidden" name="clientIds" value={String(row.clientId)} />
+            <div
+              className={cn(
+                "space-y-2 rounded-lg px-3 py-2 text-xs",
+                offDay ? "bg-amber-500/10 text-amber-700 dark:text-amber-400" : "bg-muted/50 text-muted-foreground",
+              )}
+            >
+              <p>
+                {row.fullName}&apos;s assigned collection day is <strong>{WEEKDAY_NAMES[row.enrollmentDay]}</strong>.
+                {offDay ? (
+                  <>
+                    {" "}
+                    Today ({WEEKDAY_NAMES[selectedDay]}) is a different day, so a payment recorded here will be counted as a{" "}
+                    <strong>Supplementary</strong> payment automatically.
+                  </>
+                ) : (
+                  " Today matches their assigned day, so a payment recorded here counts as on-time — this override isn't needed."
+                )}
+              </p>
+              <label className={cn("flex items-center gap-1.5", !offDay && "opacity-50")}>
+                <input
+                  type="checkbox"
+                  name={`sup_${row.clientId}`}
+                  defaultChecked={row.supplementaryOverride === "not_supplementary"}
+                  disabled={readOnly || !offDay}
+                  className="size-3.5"
+                />
+                This was actually collected on time — data just entered late. Don&apos;t mark as Supplementary.
+              </label>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {FIELDS.map((f) => (
+                <div key={f.prefix} className="space-y-1">
+                  <label className="block text-xs text-muted-foreground" htmlFor={`${f.prefix}_${row.clientId}`}>
+                    {f.label}
+                  </label>
+                  <Input
+                    id={`${f.prefix}_${row.clientId}`}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    inputMode="decimal"
+                    name={`${f.prefix}_${row.clientId}`}
+                    defaultValue={row[f.key] ?? ""}
+                    disabled={readOnly}
+                    className="h-9 w-full"
+                  />
+                </div>
+              ))}
+              <div className="space-y-1 sm:col-span-2">
+                <label className="block text-xs text-muted-foreground" htmlFor={`nt_${row.clientId}`}>
+                  Notes
+                </label>
+                <Input
+                  id={`nt_${row.clientId}`}
+                  name={`nt_${row.clientId}`}
+                  defaultValue={row.notes ?? ""}
+                  disabled={readOnly}
+                  className="h-9 w-full"
+                />
+              </div>
+            </div>
+            {!readOnly && (
+              <div className="flex justify-end">
+                <Button type="submit" size="sm" disabled={pending}>
+                  {pending ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            )}
+          </form>
         </div>
-        {!readOnly && (
-          <div className="mt-3 flex justify-end">
-            <Button type="submit" size="sm" disabled={pending}>
-              {pending ? "Saving…" : "Save"}
-            </Button>
-          </div>
-        )}
-      </form>
-    </GlassPanel>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -331,7 +339,7 @@ export function DailyTransactionsTable({
           {rows.length === 0 ? "No active clients for this branch/collector." : "No clients match this filter."}
         </GlassPanel>
       ) : (
-        <div data-tour="tour-txn-cards" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div data-tour="tour-txn-cards" className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
           {filteredRows.map((r) => (
             <ClientCard
               key={r.clientId}

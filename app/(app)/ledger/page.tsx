@@ -4,9 +4,8 @@ import { listLedgerEntries, LEDGER_SECTIONS } from "@/lib/db/ledger";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AddLedgerEntryDialog } from "./AddLedgerEntryDialog";
+import { LedgerEntryCard } from "./LedgerEntryCard";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -16,10 +15,6 @@ function daysAgo(n: number) {
   const d = new Date();
   d.setDate(d.getDate() - n);
   return d.toISOString().slice(0, 10);
-}
-
-function money(n: string | number) {
-  return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 const nativeSelectClass =
@@ -62,7 +57,7 @@ export default async function LedgerPage({
         <form className="flex flex-wrap items-end gap-3">
           {isSuperAdmin && (
             <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground" htmlFor="branchId">
+              <label className="block text-xs text-muted-foreground" htmlFor="branchId">
                 Branch
               </label>
               <select id="branchId" name="branchId" defaultValue={branchId ? String(branchId) : ""} className={nativeSelectClass}>
@@ -75,13 +70,13 @@ export default async function LedgerPage({
             </div>
           )}
           <div className="space-y-1.5">
-            <label className="text-xs text-muted-foreground" htmlFor="from">
+            <label className="block text-xs text-muted-foreground" htmlFor="from">
               From
             </label>
             <Input id="from" name="from" type="date" defaultValue={from} className="w-40" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs text-muted-foreground" htmlFor="to">
+            <label className="block text-xs text-muted-foreground" htmlFor="to">
               To
             </label>
             <Input id="to" name="to" type="date" defaultValue={to} className="w-40" />
@@ -92,44 +87,25 @@ export default async function LedgerPage({
         </form>
       </GlassPanel>
 
-      <GlassPanel className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Section</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Notes</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead>Recorded By</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {entries.map((e) => {
-              const section = sectionLabel.get(e.section);
-              return (
-                <TableRow key={e.id}>
-                  <TableCell>{e.entryDate}</TableCell>
-                  <TableCell>
-                    <Badge variant={section?.side === "credit" ? "default" : "secondary"}>{section?.label ?? e.section}</Badge>
-                  </TableCell>
-                  <TableCell>{e.label}</TableCell>
-                  <TableCell className="max-w-xs truncate text-muted-foreground">{e.notes || "—"}</TableCell>
-                  <TableCell className="text-right">{money(e.amount)}</TableCell>
-                  <TableCell className="text-muted-foreground">{e.recordedByName}</TableCell>
-                </TableRow>
-              );
-            })}
-            {entries.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
-                  No ledger entries in this range.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+      {entries.length === 0 ? (
+        <div data-tour="tour-ledger-entries" className="rounded-2xl border border-border p-6 text-center text-muted-foreground">
+          No ledger entries in this range.
+        </div>
+      ) : (
+        <div data-tour="tour-ledger-entries" className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+          {entries.map((e) => {
+            const section = sectionLabel.get(e.section);
+            return (
+              <LedgerEntryCard
+                key={e.id}
+                entry={e}
+                sectionLabel={section?.label ?? e.section}
+                sectionSide={section?.side}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

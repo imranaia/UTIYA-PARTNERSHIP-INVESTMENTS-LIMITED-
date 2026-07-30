@@ -15,7 +15,7 @@ import { GlassPanel } from "@/components/layout/GlassPanel";
 import { LinkCarousel } from "@/components/layout/LinkCarousel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { BranchBreakdownCard } from "./BranchBreakdownCard";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -136,14 +136,14 @@ export default async function ReportsPage({
       <GlassPanel className="p-4">
         <form className="flex flex-wrap items-end gap-3">
           <div className="space-y-1.5">
-            <label className="text-xs text-muted-foreground" htmlFor="date">
+            <label className="block text-xs text-muted-foreground" htmlFor="date">
               Date
             </label>
             <Input id="date" name="date" type="date" defaultValue={reportDate} className="w-40" />
           </div>
           {isSuperAdmin && (
             <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground" htmlFor="branchId">
+              <label className="block text-xs text-muted-foreground" htmlFor="branchId">
                 Branch
               </label>
               <select id="branchId" name="branchId" defaultValue={branchId ? String(branchId) : ""} className={nativeSelectClass}>
@@ -196,32 +196,11 @@ export default async function ReportsPage({
       {breakdown && (
         <>
           <h2 className="text-sm font-semibold text-muted-foreground">By Branch — {reportDate}</h2>
-          <GlassPanel className="overflow-hidden p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Branch</TableHead>
-                  <TableHead className="text-right">Active Clients</TableHead>
-                  <TableHead className="text-right">Loan Disb.</TableHead>
-                  <TableHead className="text-right">Loan Recovery</TableHead>
-                  <TableHead className="text-right">New Savings</TableHead>
-                  <TableHead className="text-right">Savings Recall</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {breakdown.map((b) => (
-                  <TableRow key={b.branchId}>
-                    <TableCell className="font-medium">{b.branchName}</TableCell>
-                    <TableCell className="text-right">{b.activeClients}</TableCell>
-                    <TableCell className="text-right">{money(b.loanDisbursement)}</TableCell>
-                    <TableCell className="text-right">{money(b.loanRecovery)}</TableCell>
-                    <TableCell className="text-right">{money(b.newSavings)}</TableCell>
-                    <TableCell className="text-right">{money(b.savingsRecall)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </GlassPanel>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+            {breakdown.map((b) => (
+              <BranchBreakdownCard key={b.branchId} branch={b} reportDate={reportDate} />
+            ))}
+          </div>
         </>
       )}
     </div>

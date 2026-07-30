@@ -49,15 +49,15 @@ export default async function TransactionsPage({
 
       <GlassPanel className="p-4">
         <form className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1.5">
-            <label className="text-xs text-muted-foreground" htmlFor="date">
+          <div className="space-y-2">
+            <label className="block text-xs text-muted-foreground" htmlFor="date">
               Date
             </label>
             <Input id="date" name="date" type="date" defaultValue={transactionDate} className="w-40" />
           </div>
           {isSuperAdmin && (
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground" htmlFor="branchId">
+            <div className="space-y-2">
+              <label className="block text-xs text-muted-foreground" htmlFor="branchId">
                 Branch
               </label>
               <select id="branchId" name="branchId" defaultValue={branchId ? String(branchId) : ""} className={nativeSelectClass}>
@@ -70,8 +70,8 @@ export default async function TransactionsPage({
             </div>
           )}
           {collectors.length > 0 && (
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground" htmlFor="collectorId">
+            <div className="space-y-2">
+              <label className="block text-xs text-muted-foreground" htmlFor="collectorId">
                 Collector
               </label>
               <select

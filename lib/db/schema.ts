@@ -140,6 +140,7 @@ export const importBatches = pgTable("import_batches", {
     .notNull()
     .references(() => users.id),
   fileName: varchar("file_name", { length: 200 }).notNull(),
+  importType: varchar("import_type", { length: 20 }).notNull().default("clients"),
   status: varchar("status", { length: 20 }).notNull().default("pending"),
   totalRows: integer("total_rows").notNull().default(0),
   successRows: integer("success_rows").notNull().default(0),
@@ -160,6 +161,7 @@ export const importRows = pgTable("import_rows", {
   errorMessage: text("error_message"),
   createdClientId: integer("created_client_id").references(() => clients.id),
   createdTxnId: integer("created_txn_id"), // no FK: client_transactions is declared after this table
+  createdExpenseId: integer("created_expense_id"), // no FK: expenses is declared after this table
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

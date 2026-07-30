@@ -41,7 +41,7 @@ export default async function CashBookPage({
         <form className="flex flex-wrap items-end gap-3">
           {isSuperAdmin && (
             <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground" htmlFor="branchId">
+              <label className="block text-xs text-muted-foreground" htmlFor="branchId">
                 Branch
               </label>
               <select id="branchId" name="branchId" defaultValue={branchId ? String(branchId) : ""} className={nativeSelectClass}>
@@ -55,7 +55,7 @@ export default async function CashBookPage({
           )}
           {accountNames.length > 0 && (
             <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground" htmlFor="accountName">
+              <label className="block text-xs text-muted-foreground" htmlFor="accountName">
                 Account
               </label>
               <select id="accountName" name="accountName" defaultValue={accountName ?? ""} className={nativeSelectClass}>

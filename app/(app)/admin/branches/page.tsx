@@ -1,10 +1,7 @@
 import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { listBranches } from "@/lib/db/branches";
-import { GlassPanel } from "@/components/layout/GlassPanel";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { NewBranchDialog } from "./NewBranchDialog";
-import { BranchActiveToggle } from "./BranchActiveToggle";
+import { BranchCard } from "./BranchCard";
 
 export default async function BranchesPage() {
   await requireModule("branches", "view");
@@ -18,43 +15,15 @@ export default async function BranchesPage() {
         {canCreate && <NewBranchDialog />}
       </div>
 
-      <GlassPanel className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Code</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Address</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {branches.map((b) => (
-              <TableRow key={b.id}>
-                <TableCell className="font-medium">{b.code}</TableCell>
-                <TableCell>{b.name}</TableCell>
-                <TableCell className="text-muted-foreground">{b.address || "—"}</TableCell>
-                <TableCell className="text-muted-foreground">{b.phone || "—"}</TableCell>
-                <TableCell>
-                  {canEdit ? (
-                    <BranchActiveToggle branchId={b.id} isActive={b.isActive} />
-                  ) : (
-                    <Badge variant={b.isActive ? "default" : "secondary"}>{b.isActive ? "Active" : "Inactive"}</Badge>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-            {branches.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  No branches yet.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+      {branches.length === 0 ? (
+        <div className="rounded-2xl border border-border p-6 text-center text-muted-foreground">No branches yet.</div>
+      ) : (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+          {branches.map((b) => (
+            <BranchCard key={b.id} branch={b} canEdit={canEdit} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

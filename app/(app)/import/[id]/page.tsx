@@ -56,16 +56,20 @@ export default async function ImportBatchPage({ params }: { params: Promise<{ id
           <TableBody>
             {rows.map((r) => {
               const raw = r.rawData as Record<string, unknown>;
+              const name = batch.importType === "expenses" ? raw["Description"] : raw["Full Name"];
+              const detail =
+                r.errorMessage ??
+                (r.createdClientId ? "Client created" : r.createdExpenseId ? "Expense created" : "—");
               return (
                 <TableRow key={r.id}>
                   <TableCell>{r.rowNumber}</TableCell>
-                  <TableCell>{String(raw["Full Name"] ?? "—")}</TableCell>
+                  <TableCell>{String(name ?? "—")}</TableCell>
                   <TableCell>
                     <Badge variant={r.status === "success" ? "default" : "destructive"} className="capitalize">
                       {r.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{r.errorMessage ?? (r.createdClientId ? "Client created" : "—")}</TableCell>
+                  <TableCell className="text-muted-foreground">{detail}</TableCell>
                 </TableRow>
               );
             })}

@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { Download } from "lucide-react";
 import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { listActiveBranches } from "@/lib/db/branches";
 import { listImportBatches } from "@/lib/db/imports";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { UploadForm } from "./UploadForm";
 
 export default async function ImportPage() {
@@ -23,12 +21,6 @@ export default async function ImportPage() {
     <div className="space-y-4">
       <div data-tour="tour-import" className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold">Excel Import</h1>
-        <Button asChild variant="secondary" size="sm" className="gap-1.5">
-          <Link href="/import/template">
-            <Download className="size-4" />
-            Download template
-          </Link>
-        </Button>
       </div>
 
       {canCreate && (
@@ -43,6 +35,7 @@ export default async function ImportPage() {
           <TableHeader>
             <TableRow>
               <TableHead>File</TableHead>
+              <TableHead>Type</TableHead>
               {isSuperAdmin && <TableHead>Branch</TableHead>}
               <TableHead>Uploaded By</TableHead>
               <TableHead>Uploaded</TableHead>
@@ -58,6 +51,7 @@ export default async function ImportPage() {
                     {b.fileName}
                   </Link>
                 </TableCell>
+                <TableCell className="capitalize text-muted-foreground">{b.importType}</TableCell>
                 {isSuperAdmin && <TableCell className="text-muted-foreground">{b.branchName ?? "—"}</TableCell>}
                 <TableCell className="text-muted-foreground">{b.uploadedByName}</TableCell>
                 <TableCell className="text-muted-foreground">{new Date(b.createdAt).toLocaleString()}</TableCell>
@@ -74,7 +68,7 @@ export default async function ImportPage() {
             ))}
             {batches.length === 0 && (
               <TableRow>
-                <TableCell colSpan={isSuperAdmin ? 6 : 5} className="text-center text-muted-foreground">
+                <TableCell colSpan={isSuperAdmin ? 7 : 6} className="text-center text-muted-foreground">
                   No imports yet.
                 </TableCell>
               </TableRow>

@@ -1,12 +1,11 @@
-import Link from "next/link";
-import { Plus } from "lucide-react";
 import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { listActiveBranches } from "@/lib/db/branches";
-import { listExpenses, getExpensesByCategory } from "@/lib/db/expenses";
+import { listExpenses, getExpensesByCategory, listExpenseCategories } from "@/lib/db/expenses";
 import { GlassPanel } from "@/components/layout/GlassPanel";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ExpenseCard } from "./ExpenseCard";
+import { NewExpenseDialog } from "./NewExpenseDialog";
 
 function money(n: string | number) {
   return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -28,9 +27,10 @@ export default async function ExpensesPage({
   const branches = isSuperAdmin ? await listActiveBranches() : [];
   const branchId = isSuperAdmin ? (branchIdParam ? Number(branchIdParam) : null) : user.branchId;
 
-  const [rows, byCategory] = await Promise.all([
+  const [rows, byCategory, categories] = await Promise.all([
     listExpenses({ branchId, from, to }),
     getExpensesByCategory({ branchId, from, to }),
+    listExpenseCategories(),
   ]);
   const total = rows.reduce((sum, r) => sum + Number(r.amount), 0);
   const nonZeroCategories = byCategory.filter((c) => Number(c.total) > 0);
@@ -41,20 +41,15 @@ export default async function ExpensesPage({
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold">Expenses</h1>
         {canCreate && (
-          <Button asChild size="sm" className="gap-1.5">
-            <Link href="/expenses/new">
-              <Plus className="size-4" />
-              Add Expense
-            </Link>
-          </Button>
+          <NewExpenseDialog branches={branches} categories={categories} showBranchSelect={isSuperAdmin} />
         )}
       </div>
 
       <GlassPanel data-tour="tour-expenses" className="p-4">
         <form className="flex flex-wrap items-end gap-3">
           {isSuperAdmin && (
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground" htmlFor="branchId">
+            <div className="space-y-2">
+              <label className="block text-xs text-muted-foreground" htmlFor="branchId">
                 Branch
               </label>
               <select id="branchId" name="branchId" defaultValue={branchId ? String(branchId) : ""} className={nativeSelectClass}>
@@ -67,14 +62,14 @@ export default async function ExpensesPage({
               </select>
             </div>
           )}
-          <div className="space-y-1.5">
-            <label className="text-xs text-muted-foreground" htmlFor="from">
+          <div className="space-y-2">
+            <label className="block text-xs text-muted-foreground" htmlFor="from">
               From
             </label>
             <Input id="from" name="from" type="date" defaultValue={from} className="w-40" />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-xs text-muted-foreground" htmlFor="to">
+          <div className="space-y-2">
+            <label className="block text-xs text-muted-foreground" htmlFor="to">
               To
             </label>
             <Input id="to" name="to" type="date" defaultValue={to} className="w-40" />
@@ -106,41 +101,15 @@ export default async function ExpensesPage({
         )}
       </GlassPanel>
 
-      <GlassPanel className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Description</TableHead>
-              {isSuperAdmin && <TableHead>Branch</TableHead>}
-              <TableHead>Recorded By</TableHead>
-              <TableHead>Receipt Ref.</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell>{r.expenseDate}</TableCell>
-                <TableCell>{r.categoryName}</TableCell>
-                <TableCell className="max-w-xs truncate">{r.description}</TableCell>
-                {isSuperAdmin && <TableCell className="text-muted-foreground">{r.branchName}</TableCell>}
-                <TableCell className="text-muted-foreground">{r.recordedByName}</TableCell>
-                <TableCell className="text-muted-foreground">{r.receiptRef || "—"}</TableCell>
-                <TableCell className="text-right font-medium">{money(r.amount)}</TableCell>
-              </TableRow>
-            ))}
-            {rows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={isSuperAdmin ? 7 : 6} className="text-center text-muted-foreground">
-                  No expenses recorded yet.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+      {rows.length === 0 ? (
+        <div className="rounded-2xl border border-border p-6 text-center text-muted-foreground">No expenses recorded yet.</div>
+      ) : (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+          {rows.map((r) => (
+            <ExpenseCard key={r.id} expense={r} showBranch={isSuperAdmin} />
+          ))}
+        </div>
+      )}
 
       {rows.length > 0 && (
         <div className="text-right text-sm text-muted-foreground">

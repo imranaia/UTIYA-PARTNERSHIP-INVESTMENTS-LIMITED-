@@ -61,7 +61,7 @@ function StatTile({
         <p className="text-xs text-muted-foreground">{label}</p>
         <p
           className={
-            "truncate text-lg font-semibold " +
+            "break-words text-lg font-semibold " +
             (emphasis === "positive" ? "text-primary" : emphasis === "negative" ? "text-destructive" : "text-foreground")
           }
         >
@@ -117,7 +117,7 @@ export default async function DashboardPage() {
         </p>
       </GlassPanel>
 
-      <GlassPanel data-tour="tour-dashboard-stats" className="grid grid-cols-2 gap-6 p-6 sm:grid-cols-3 lg:grid-cols-6">
+      <GlassPanel data-tour="tour-dashboard-stats" className="grid grid-cols-2 gap-6 p-6 sm:grid-cols-3">
         <StatTile icon={Users} label="Active Clients" value={portfolio.activeClients.toLocaleString()} />
         <StatTile icon={Wallet} label="Active Loans Outstanding" value={money(loanPortfolio.activeLoanBalance)} />
         <StatTile icon={PiggyBank} label="Total Capital (Savings)" value={money(portfolio.totalSavings)} />

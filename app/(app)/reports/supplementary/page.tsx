@@ -63,7 +63,7 @@ export default async function SupplementaryReportPage({
         <form className="flex flex-wrap items-end gap-3">
           {isSuperAdmin && (
             <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground" htmlFor="branchId">
+              <label className="block text-xs text-muted-foreground" htmlFor="branchId">
                 Branch
               </label>
               <select id="branchId" name="branchId" defaultValue={branchId ? String(branchId) : ""} className={nativeSelectClass}>
@@ -78,7 +78,7 @@ export default async function SupplementaryReportPage({
           )}
           {collectors.length > 0 && (
             <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground" htmlFor="collectorId">
+              <label className="block text-xs text-muted-foreground" htmlFor="collectorId">
                 Collector
               </label>
               <select
@@ -97,13 +97,13 @@ export default async function SupplementaryReportPage({
             </div>
           )}
           <div className="space-y-1.5">
-            <label className="text-xs text-muted-foreground" htmlFor="from">
+            <label className="block text-xs text-muted-foreground" htmlFor="from">
               From
             </label>
             <Input id="from" name="from" type="date" defaultValue={from} className="w-40" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs text-muted-foreground" htmlFor="to">
+            <label className="block text-xs text-muted-foreground" htmlFor="to">
               To
             </label>
             <Input id="to" name="to" type="date" defaultValue={to} className="w-40" />

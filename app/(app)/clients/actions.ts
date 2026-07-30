@@ -4,7 +4,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireModule } from "@/lib/auth/session";
-import { createClient, setClientStatus, CLIENT_STATUSES, type ClientStatus } from "@/lib/db/clients";
+import { createClient, updateClient, setClientStatus, CLIENT_STATUSES, type ClientStatus } from "@/lib/db/clients";
 import { createLoanMaturityEvent } from "@/lib/db/loanMaturity";
 import { InvalidEnrollmentDateError } from "@/lib/services/clientCode";
 import { logAction } from "@/lib/db/audit";
@@ -81,6 +81,61 @@ export async function createClientAction(_prevState: ClientFormState, formData: 
 
   revalidatePath("/clients");
   redirect(`/clients/${client.id}`);
+}
+
+const updateClientSchema = z.object({
+  clientId: z.coerce.number().int().positive(),
+  fullName: z.string().trim().min(2).max(150),
+  phone: z.string().trim().max(30).optional().or(z.literal("")),
+  address: z.string().trim().max(500).optional().or(z.literal("")),
+  groupName: z.string().trim().max(80).optional().or(z.literal("")),
+  businessType: z.string().trim().max(80).optional().or(z.literal("")),
+  businessLocation: z.string().trim().max(120).optional().or(z.literal("")),
+  loanCollectorId: z.coerce.number().int().positive().optional(),
+});
+
+export async function updateClientAction(_prevState: ClientFormState, formData: FormData): Promise<ClientFormState> {
+  const user = await requireModule("clients", "edit");
+
+  const parsed = updateClientSchema.safeParse({
+    clientId: formData.get("clientId"),
+    fullName: formData.get("fullName"),
+    phone: formData.get("phone"),
+    address: formData.get("address"),
+    groupName: formData.get("groupName"),
+    businessType: formData.get("businessType"),
+    businessLocation: formData.get("businessLocation"),
+    loanCollectorId: formData.get("loanCollectorId") || undefined,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const client = await updateClient(parsed.data.clientId, {
+    fullName: parsed.data.fullName,
+    phone: parsed.data.phone || undefined,
+    address: parsed.data.address || undefined,
+    groupName: parsed.data.groupName || undefined,
+    businessType: parsed.data.businessType || undefined,
+    businessLocation: parsed.data.businessLocation || undefined,
+    loanCollectorId: parsed.data.loanCollectorId ?? null,
+  });
+  if (!client) {
+    return { error: "Client not found." };
+  }
+
+  await logAction({
+    userId: user.userId,
+    branchId: client.branchId,
+    action: "client.update",
+    entityType: "client",
+    entityId: client.id,
+    after: { fullName: client.fullName },
+  });
+
+  revalidatePath("/clients");
+  revalidatePath(`/clients/${client.id}`);
+  return { error: null };
 }
 
 export async function setClientStatusAction(clientId: number, status: string) {

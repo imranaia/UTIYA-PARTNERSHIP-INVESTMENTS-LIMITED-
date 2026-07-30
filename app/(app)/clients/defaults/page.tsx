@@ -44,7 +44,7 @@ export default async function ClientDefaultsPage({ searchParams }: { searchParam
         <GlassPanel className="p-4">
           <form className="flex items-end gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground" htmlFor="branchId">
+              <label className="block text-xs text-muted-foreground" htmlFor="branchId">
                 Branch
               </label>
               <select id="branchId" name="branchId" defaultValue={branchId ? String(branchId) : ""} className={nativeSelectClass}>

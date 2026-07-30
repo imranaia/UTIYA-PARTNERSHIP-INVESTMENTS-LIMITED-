@@ -1,12 +1,22 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import Link from "next/link";
+import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { importClientsAction, type ImportFormState } from "./actions";
+import { importClientsAction, importExpensesAction, type ImportFormState } from "./actions";
 
 const initialState: ImportFormState = { error: null };
+
+type ImportKind = "clients" | "expenses";
+
+const KIND_LABEL: Record<ImportKind, string> = { clients: "Clients", expenses: "Expenses" };
+const KIND_HINT: Record<ImportKind, string> = {
+  clients: "Upload an .xlsx file with columns: Full Name, Phone, Address, Group, Enrollment Date, Loan Collector, Opening Savings.",
+  expenses: "Upload an .xlsx file with columns: Category, Description, Amount, Expense Date, Receipt Ref.",
+};
 
 export function UploadForm({
   branches,
@@ -15,54 +25,80 @@ export function UploadForm({
   branches: { id: number; name: string; code: string }[];
   showBranchSelect: boolean;
 }) {
-  const [state, formAction, pending] = useActionState(importClientsAction, initialState);
+  const [kind, setKind] = useState<ImportKind>("clients");
+  const [clientState, clientFormAction, clientPending] = useActionState(importClientsAction, initialState);
+  const [expenseState, expenseFormAction, expensePending] = useActionState(importExpensesAction, initialState);
+
+  const state = kind === "clients" ? clientState : expenseState;
+  const formAction = kind === "clients" ? clientFormAction : expenseFormAction;
+  const pending = kind === "clients" ? clientPending : expensePending;
 
   return (
-    <form action={formAction} className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Upload an .xlsx file with columns: Full Name, Phone, Address, Group, Enrollment Date, Loan Collector, Opening
-        Savings. Download the template to get the exact format.
-      </p>
-
-      {showBranchSelect && (
-        <div className="space-y-1.5">
-          <Label htmlFor="branchId">Branch</Label>
-          <Select name="branchId" required>
-            <SelectTrigger id="branchId" className="w-full">
-              <SelectValue placeholder="Select a branch" />
-            </SelectTrigger>
-            <SelectContent>
-              {branches.map((b) => (
-                <SelectItem key={b.id} value={String(b.id)}>
-                  {b.name} ({b.code})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
+    <div className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="file">Excel file</Label>
-        <input
-          id="file"
-          name="file"
-          type="file"
-          accept=".xlsx"
-          required
-          className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground"
-        />
+        <Label htmlFor="importKind">What are you importing?</Label>
+        <Select value={kind} onValueChange={(v) => setKind(v as ImportKind)}>
+          <SelectTrigger id="importKind" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="clients">Clients</SelectItem>
+            <SelectItem value="expenses">Expenses</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      {state.error && (
-        <p role="alert" className="text-sm text-destructive">
-          {state.error}
-        </p>
-      )}
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm text-muted-foreground">{KIND_HINT[kind]}</p>
+        <Button asChild variant="secondary" size="sm" className="shrink-0 gap-1.5">
+          <Link href={`/import/template?type=${kind}`}>
+            <Download className="size-4" />
+            Template
+          </Link>
+        </Button>
+      </div>
 
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "Importing…" : "Import clients"}
-      </Button>
-    </form>
+      <form key={kind} action={formAction} className="space-y-4">
+        {showBranchSelect && (
+          <div className="space-y-1.5">
+            <Label htmlFor="branchId">Branch</Label>
+            <Select name="branchId" required>
+              <SelectTrigger id="branchId" className="w-full">
+                <SelectValue placeholder="Select a branch" />
+              </SelectTrigger>
+              <SelectContent>
+                {branches.map((b) => (
+                  <SelectItem key={b.id} value={String(b.id)}>
+                    {b.name} ({b.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          <Label htmlFor="file">Excel file</Label>
+          <input
+            id="file"
+            name="file"
+            type="file"
+            accept=".xlsx"
+            required
+            className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground"
+          />
+        </div>
+
+        {state.error && (
+          <p role="alert" className="text-sm text-destructive">
+            {state.error}
+          </p>
+        )}
+
+        <Button type="submit" disabled={pending} className="w-full">
+          {pending ? "Importing…" : `Import ${KIND_LABEL[kind].toLowerCase()}`}
+        </Button>
+      </form>
+    </div>
   );
 }

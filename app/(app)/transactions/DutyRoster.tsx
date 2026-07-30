@@ -46,7 +46,7 @@ export function DutyRoster({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {DUTY_POSTS.map((post) => (
           <div key={post.key} className="space-y-1.5">
-            <label className="text-xs text-muted-foreground">{post.label}</label>
+            <label className="block text-xs text-muted-foreground">{post.label}</label>
             <select
               defaultValue={assignedMap.get(post.key) ?? ""}
               disabled={readOnly || pending}

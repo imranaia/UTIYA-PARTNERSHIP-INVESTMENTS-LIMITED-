@@ -19,9 +19,15 @@ export async function listClients(params: { branchId: number | null; search?: st
       clientCode: clients.clientCode,
       fullName: clients.fullName,
       phone: clients.phone,
+      address: clients.address,
       groupName: clients.groupName,
+      businessType: clients.businessType,
+      businessLocation: clients.businessLocation,
       status: clients.status,
+      branchId: clients.branchId,
       branchName: branches.name,
+      enrollmentDate: clients.enrollmentDate,
+      loanCollectorId: clients.loanCollectorId,
       loanCollectorName: users.fullName,
     })
     .from(clients)
@@ -197,4 +203,38 @@ export async function createClient(data: {
 
     return client;
   });
+}
+
+// Branch and enrollment date are deliberately excluded — enrollment date
+// permanently fixes the client's code (see generateClientCode), and moving
+// a client between branches has knock-on effects on collectors/reporting
+// that this simple edit form isn't meant to handle.
+export async function updateClient(
+  id: number,
+  data: {
+    fullName: string;
+    phone?: string;
+    address?: string;
+    groupName?: string;
+    businessType?: string;
+    businessLocation?: string;
+    loanCollectorId?: number | null;
+  },
+) {
+  const db = getDb();
+  const [client] = await db
+    .update(clients)
+    .set({
+      fullName: data.fullName,
+      phone: data.phone || null,
+      address: data.address || null,
+      groupName: data.groupName || null,
+      businessType: data.businessType || null,
+      businessLocation: data.businessLocation || null,
+      loanCollectorId: data.loanCollectorId ?? null,
+      updatedAt: new Date(),
+    })
+    .where(eq(clients.id, id))
+    .returning();
+  return client ?? null;
 }

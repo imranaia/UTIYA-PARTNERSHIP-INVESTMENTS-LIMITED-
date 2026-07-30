@@ -1,22 +1,21 @@
 import Link from "next/link";
-import { Plus, BookOpen } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { listReconciliations } from "@/lib/db/bankReconciliation";
-import { GlassPanel } from "@/components/layout/GlassPanel";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { listActiveBranches } from "@/lib/db/branches";
 import { Button } from "@/components/ui/button";
-
-function money(n: string | number) {
-  return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+import { ReconciliationCard } from "./ReconciliationCard";
+import { NewReconciliationDialog } from "./NewReconciliationDialog";
 
 export default async function BankReconciliationPage() {
   const user = await requireModule("bank_reconciliation", "view");
   const { canCreate } = await getModulePermission("bank_reconciliation");
   const isSuperAdmin = user.roleKey === "super_admin";
 
-  const rows = await listReconciliations({ branchId: isSuperAdmin ? null : user.branchId });
+  const [rows, branches] = await Promise.all([
+    listReconciliations({ branchId: isSuperAdmin ? null : user.branchId }),
+    isSuperAdmin ? listActiveBranches() : Promise.resolve([]),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -29,56 +28,21 @@ export default async function BankReconciliationPage() {
               Cash Book
             </Link>
           </Button>
-          {canCreate && (
-            <Button asChild size="sm" className="gap-1.5">
-              <Link href="/bank-reconciliation/new">
-                <Plus className="size-4" />
-                Add Reconciliation
-              </Link>
-            </Button>
-          )}
+          {canCreate && <NewReconciliationDialog branches={branches} showBranchSelect={isSuperAdmin} />}
         </div>
       </div>
 
-      <GlassPanel data-tour="tour-reconciliation" className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Account</TableHead>
-              {isSuperAdmin && <TableHead>Branch</TableHead>}
-              <TableHead className="text-right">Bank Balance</TableHead>
-              <TableHead className="text-right">Cash Balance</TableHead>
-              <TableHead className="text-right">Book Balance</TableHead>
-              <TableHead className="text-right">Variance</TableHead>
-              <TableHead>Recorded By</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell>{r.reconDate}</TableCell>
-                <TableCell className="text-muted-foreground">{r.accountName || "Main"}</TableCell>
-                {isSuperAdmin && <TableCell className="text-muted-foreground">{r.branchName}</TableCell>}
-                <TableCell className="text-right">{money(r.bankBalance)}</TableCell>
-                <TableCell className="text-right">{money(r.cashBalance)}</TableCell>
-                <TableCell className="text-right">{money(r.bookBalance)}</TableCell>
-                <TableCell className="text-right">
-                  <Badge variant={Number(r.variance) === 0 ? "default" : "destructive"}>{money(r.variance)}</Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{r.recordedByName}</TableCell>
-              </TableRow>
-            ))}
-            {rows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={isSuperAdmin ? 8 : 7} className="text-center text-muted-foreground">
-                  No reconciliations recorded yet.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+      {rows.length === 0 ? (
+        <div data-tour="tour-reconciliation" className="rounded-2xl border border-border p-6 text-center text-muted-foreground">
+          No reconciliations recorded yet.
+        </div>
+      ) : (
+        <div data-tour="tour-reconciliation" className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+          {rows.map((r) => (
+            <ReconciliationCard key={r.id} row={r} showBranch={isSuperAdmin} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
