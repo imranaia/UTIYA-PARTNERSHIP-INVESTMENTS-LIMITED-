@@ -6,16 +6,30 @@ import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { importClientsAction, importExpensesAction, type ImportFormState } from "./actions";
+import {
+  importClientsAction,
+  importExpensesAction,
+  importTransactionsAction,
+  importCashBookAction,
+  type ImportFormState,
+} from "./actions";
 
 const initialState: ImportFormState = { error: null };
 
-type ImportKind = "clients" | "expenses";
+type ImportKind = "clients" | "expenses" | "transactions" | "cash_book";
 
-const KIND_LABEL: Record<ImportKind, string> = { clients: "Clients", expenses: "Expenses" };
+const KIND_LABEL: Record<ImportKind, string> = {
+  clients: "Clients",
+  expenses: "Expenses",
+  transactions: "Daily Transactions",
+  cash_book: "Cash Book",
+};
 const KIND_HINT: Record<ImportKind, string> = {
   clients: "Upload an .xlsx file with columns: Full Name, Phone, Address, Group, Enrollment Date, Loan Collector, Opening Savings.",
   expenses: "Upload an .xlsx file with columns: Category, Description, Amount, Expense Date, Receipt Ref.",
+  transactions:
+    "Upload an .xlsx file with columns: Client Code, Date, Loan Disbursement, Loan Recovery, Interest, Service Charge, New Savings, Savings Recall, Collateral In, Collateral Out, Notes.",
+  cash_book: "Upload an .xlsx file with columns: Date, Account, Details, Ref Type (OR/PV/CQ), Debit, Credit.",
 };
 
 export function UploadForm({
@@ -28,10 +42,15 @@ export function UploadForm({
   const [kind, setKind] = useState<ImportKind>("clients");
   const [clientState, clientFormAction, clientPending] = useActionState(importClientsAction, initialState);
   const [expenseState, expenseFormAction, expensePending] = useActionState(importExpensesAction, initialState);
+  const [txnState, txnFormAction, txnPending] = useActionState(importTransactionsAction, initialState);
+  const [cashBookState, cashBookFormAction, cashBookPending] = useActionState(importCashBookAction, initialState);
 
-  const state = kind === "clients" ? clientState : expenseState;
-  const formAction = kind === "clients" ? clientFormAction : expenseFormAction;
-  const pending = kind === "clients" ? clientPending : expensePending;
+  const { state, formAction, pending } = {
+    clients: { state: clientState, formAction: clientFormAction, pending: clientPending },
+    expenses: { state: expenseState, formAction: expenseFormAction, pending: expensePending },
+    transactions: { state: txnState, formAction: txnFormAction, pending: txnPending },
+    cash_book: { state: cashBookState, formAction: cashBookFormAction, pending: cashBookPending },
+  }[kind];
 
   return (
     <div className="space-y-4">
@@ -44,6 +63,8 @@ export function UploadForm({
           <SelectContent>
             <SelectItem value="clients">Clients</SelectItem>
             <SelectItem value="expenses">Expenses</SelectItem>
+            <SelectItem value="transactions">Daily Transactions</SelectItem>
+            <SelectItem value="cash_book">Cash Book</SelectItem>
           </SelectContent>
         </Select>
       </div>

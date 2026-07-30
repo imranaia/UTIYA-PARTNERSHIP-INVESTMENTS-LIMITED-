@@ -6,14 +6,8 @@ import { listDefaults, RESOLUTION_TYPES } from "@/lib/db/clientDefaults";
 const RESOLUTION_LABELS = Object.fromEntries(RESOLUTION_TYPES.map((r) => [r.key, r.label]));
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { BackLink } from "@/components/layout/BackLink";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { AddDefaultDialog } from "./AddDefaultDialog";
-import { ResolveButton } from "./ResolveButton";
-
-function money(n: string | number) {
-  return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+import { DefaultCard } from "./DefaultCard";
 
 const nativeSelectClass =
   "h-8 w-44 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
@@ -59,49 +53,15 @@ export default async function ClientDefaultsPage({ searchParams }: { searchParam
         </GlassPanel>
       )}
 
-      <GlassPanel className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Client</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead>Reason</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Recorded By</TableHead>
-              {canEdit && <TableHead />}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell className="font-medium">
-                  {r.clientName} <span className="text-xs text-muted-foreground">({r.clientCode})</span>
-                </TableCell>
-                <TableCell>{r.defaultedAt}</TableCell>
-                <TableCell className="text-right">{money(r.defaultedAmount)}</TableCell>
-                <TableCell className="max-w-xs truncate text-muted-foreground">{r.reason || "—"}</TableCell>
-                <TableCell>
-                  <Badge variant={r.resolvedAt ? "secondary" : "destructive"}>
-                    {r.resolvedAt
-                      ? `Resolved${r.resolutionType ? ` (${RESOLUTION_LABELS[r.resolutionType] ?? r.resolutionType})` : ""}`
-                      : "Open"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{r.recordedByName}</TableCell>
-                {canEdit && <TableCell>{!r.resolvedAt && <ResolveButton id={r.id} />}</TableCell>}
-              </TableRow>
-            ))}
-            {rows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={canEdit ? 7 : 6} className="text-center text-muted-foreground">
-                  No defaults recorded.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+      {rows.length === 0 ? (
+        <div className="rounded-2xl border border-border p-6 text-center text-muted-foreground">No defaults recorded.</div>
+      ) : (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+          {rows.map((r) => (
+            <DefaultCard key={r.id} row={r} resolutionLabels={RESOLUTION_LABELS} canEdit={canEdit} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -3,12 +3,8 @@ import { listActiveBranches } from "@/lib/db/branches";
 import { listCashBookEntries, listCashBookAccountNames } from "@/lib/db/cashBook";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { BackLink } from "@/components/layout/BackLink";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AddEntryDialog } from "./AddEntryDialog";
-
-function money(n: string | number) {
-  return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+import { CashBookEntryCard } from "./CashBookEntryCard";
 
 const nativeSelectClass =
   "h-8 w-44 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
@@ -76,45 +72,15 @@ export default async function CashBookPage({
         </form>
       </GlassPanel>
 
-      <GlassPanel className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              {accountNames.length > 0 && <TableHead>Account</TableHead>}
-              <TableHead>Details</TableHead>
-              <TableHead>Ref.</TableHead>
-              <TableHead className="text-right">Debit</TableHead>
-              <TableHead className="text-right">Credit</TableHead>
-              <TableHead className="text-right">Balance</TableHead>
-              <TableHead>Recorded By</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell>{r.entryDate}</TableCell>
-                {accountNames.length > 0 && <TableCell className="text-muted-foreground">{r.accountName || "—"}</TableCell>}
-                <TableCell className="max-w-xs truncate">{r.details || "—"}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {r.refType ? `${r.refType} ${r.refNumber ?? ""}`.trim() : "—"}
-                </TableCell>
-                <TableCell className="text-right">{Number(r.debit) > 0 ? money(r.debit) : "—"}</TableCell>
-                <TableCell className="text-right">{Number(r.credit) > 0 ? money(r.credit) : "—"}</TableCell>
-                <TableCell className="text-right font-medium">{money(r.runningBalance)}</TableCell>
-                <TableCell className="text-muted-foreground">{r.recordedByName}</TableCell>
-              </TableRow>
-            ))}
-            {rows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={accountNames.length > 0 ? 8 : 7} className="text-center text-muted-foreground">
-                  No cash book entries yet.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+      {rows.length === 0 ? (
+        <div className="rounded-2xl border border-border p-6 text-center text-muted-foreground">No cash book entries yet.</div>
+      ) : (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+          {rows.map((r) => (
+            <CashBookEntryCard key={r.id} row={r} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

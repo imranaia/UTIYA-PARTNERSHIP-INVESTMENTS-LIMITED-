@@ -1,11 +1,20 @@
 import "server-only";
 import { getDb } from "./client";
-import { importBatches, importRows, branches, users } from "./schema";
-import { eq, desc, asc } from "drizzle-orm";
+import { importBatches, importRows, branches, users, clientTransactions } from "./schema";
+import { eq, and, desc, asc } from "drizzle-orm";
 import { createClient } from "./clients";
 import { createExpense } from "./expenses";
+import { saveTransactionRow, isEmptyRow } from "./transactions";
+import { createCashBookEntry } from "./cashBook";
 import { InvalidEnrollmentDateError } from "@/lib/services/clientCode";
-import type { ParsedClientRow, ParsedExpenseRow } from "@/lib/services/excelImport";
+import type { ParsedClientRow, ParsedExpenseRow, ParsedTransactionRow, ParsedCashBookRow } from "@/lib/services/excelImport";
+
+export const IMPORT_TYPE_LABELS: Record<string, string> = {
+  clients: "Clients",
+  expenses: "Expenses",
+  transactions: "Daily Transactions",
+  cash_book: "Cash Book",
+};
 
 export async function listImportBatches(params: { branchId: number | null }) {
   const db = getDb();
@@ -59,6 +68,8 @@ export async function getImportBatchRows(batchId: number) {
       rawData: importRows.rawData,
       createdClientId: importRows.createdClientId,
       createdExpenseId: importRows.createdExpenseId,
+      createdTxnId: importRows.createdTxnId,
+      createdCashBookEntryId: importRows.createdCashBookEntryId,
     })
     .from(importRows)
     .where(eq(importRows.importBatchId, batchId))
@@ -122,6 +133,191 @@ export async function runClientImport(params: {
       successRows++;
     } catch (err) {
       const message = err instanceof InvalidEnrollmentDateError || err instanceof Error ? err.message : "Unknown error.";
+      await db.insert(importRows).values({
+        importBatchId: batch.id,
+        rowNumber: row.rowNumber,
+        rawData: row.raw,
+        status: "error",
+        errorMessage: message,
+      });
+      errorRows++;
+    }
+  }
+
+  await db
+    .update(importBatches)
+    .set({ status: "completed", successRows, errorRows, completedAt: new Date() })
+    .where(eq(importBatches.id, batch.id));
+
+  return { batchId: batch.id, successRows, errorRows, totalRows: params.rows.length };
+}
+
+function toAmount(raw: string | undefined): number {
+  if (!raw) return 0;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+export async function runTransactionImport(params: {
+  branchId: number;
+  fileName: string;
+  uploadedBy: number;
+  rows: ParsedTransactionRow[];
+  clientCodesById: Map<string, number>;
+}) {
+  const db = getDb();
+  const [batch] = await db
+    .insert(importBatches)
+    .values({
+      branchId: params.branchId,
+      uploadedBy: params.uploadedBy,
+      fileName: params.fileName,
+      importType: "transactions",
+      status: "processing",
+      totalRows: params.rows.length,
+      startedAt: new Date(),
+    })
+    .returning();
+
+  let successRows = 0;
+  let errorRows = 0;
+
+  for (const row of params.rows) {
+    try {
+      if (!row.clientCode) throw new Error("Client Code is required.");
+      const clientId = params.clientCodesById.get(row.clientCode.toLowerCase());
+      if (!clientId) throw new Error(`Unknown client code "${row.clientCode}" for this branch.`);
+      if (!row.transactionDate || Number.isNaN(Date.parse(row.transactionDate))) {
+        throw new Error("Date is missing or invalid.");
+      }
+
+      const amounts = {
+        loanDisbursement: toAmount(row.loanDisbursement),
+        loanRecovery: toAmount(row.loanRecovery),
+        profitInterest: toAmount(row.profitInterest),
+        serviceCharge: toAmount(row.serviceCharge),
+        newSavings: toAmount(row.newSavings),
+        savingsRecall: toAmount(row.savingsRecall),
+        collateralTransferIn: toAmount(row.collateralTransferIn),
+        collateralTransferOut: toAmount(row.collateralTransferOut),
+      };
+      for (const [key, value] of Object.entries(amounts)) {
+        if (Number.isNaN(value) || value < 0) throw new Error(`Invalid amount for ${key}.`);
+      }
+      if (isEmptyRow({ ...amounts, notes: row.notes })) {
+        throw new Error("Row has no activity — every amount is 0.");
+      }
+
+      await saveTransactionRow({
+        clientId,
+        branchId: params.branchId,
+        transactionDate: row.transactionDate,
+        loanDisbursement: amounts.loanDisbursement.toString(),
+        loanRecovery: amounts.loanRecovery.toString(),
+        profitInterest: amounts.profitInterest.toString(),
+        serviceCharge: amounts.serviceCharge.toString(),
+        newSavings: amounts.newSavings.toString(),
+        savingsRecall: amounts.savingsRecall.toString(),
+        collateralTransferIn: amounts.collateralTransferIn.toString(),
+        collateralTransferOut: amounts.collateralTransferOut.toString(),
+        notes: row.notes || undefined,
+        recordedBy: params.uploadedBy,
+      });
+
+      const [txn] = await db
+        .select({ id: clientTransactions.id })
+        .from(clientTransactions)
+        .where(and(eq(clientTransactions.clientId, clientId), eq(clientTransactions.transactionDate, row.transactionDate)));
+
+      await db.insert(importRows).values({
+        importBatchId: batch.id,
+        rowNumber: row.rowNumber,
+        rawData: row.raw,
+        status: "success",
+        createdTxnId: txn?.id,
+      });
+      successRows++;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error.";
+      await db.insert(importRows).values({
+        importBatchId: batch.id,
+        rowNumber: row.rowNumber,
+        rawData: row.raw,
+        status: "error",
+        errorMessage: message,
+      });
+      errorRows++;
+    }
+  }
+
+  await db
+    .update(importBatches)
+    .set({ status: "completed", successRows, errorRows, completedAt: new Date() })
+    .where(eq(importBatches.id, batch.id));
+
+  return { batchId: batch.id, successRows, errorRows, totalRows: params.rows.length };
+}
+
+export async function runCashBookImport(params: {
+  branchId: number;
+  fileName: string;
+  uploadedBy: number;
+  rows: ParsedCashBookRow[];
+}) {
+  const db = getDb();
+  const [batch] = await db
+    .insert(importBatches)
+    .values({
+      branchId: params.branchId,
+      uploadedBy: params.uploadedBy,
+      fileName: params.fileName,
+      importType: "cash_book",
+      status: "processing",
+      totalRows: params.rows.length,
+      startedAt: new Date(),
+    })
+    .returning();
+
+  let successRows = 0;
+  let errorRows = 0;
+
+  for (const row of params.rows) {
+    try {
+      if (!row.entryDate || Number.isNaN(Date.parse(row.entryDate))) {
+        throw new Error("Date is missing or invalid.");
+      }
+      const refType = row.refType ? row.refType.trim().toUpperCase() : undefined;
+      if (refType && !["OR", "PV", "CQ"].includes(refType)) {
+        throw new Error(`Ref Type must be OR, PV, or CQ (got "${row.refType}").`);
+      }
+      const debit = toAmount(row.debit);
+      const credit = toAmount(row.credit);
+      if (Number.isNaN(debit) || Number.isNaN(credit) || debit < 0 || credit < 0) {
+        throw new Error("Debit and Credit must be non-negative numbers.");
+      }
+      if (debit === 0 && credit === 0) throw new Error("Enter a debit or credit amount.");
+
+      const entry = await createCashBookEntry({
+        branchId: params.branchId,
+        entryDate: row.entryDate,
+        accountName: row.accountName || undefined,
+        details: row.details || undefined,
+        refType,
+        debit: debit.toString(),
+        credit: credit.toString(),
+        recordedBy: params.uploadedBy,
+      });
+
+      await db.insert(importRows).values({
+        importBatchId: batch.id,
+        rowNumber: row.rowNumber,
+        rawData: row.raw,
+        status: "success",
+        createdCashBookEntryId: entry.id,
+      });
+      successRows++;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error.";
       await db.insert(importRows).values({
         importBatchId: batch.id,
         rowNumber: row.rowNumber,

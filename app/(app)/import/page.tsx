@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { listActiveBranches } from "@/lib/db/branches";
-import { listImportBatches } from "@/lib/db/imports";
+import { listImportBatches, IMPORT_TYPE_LABELS } from "@/lib/db/imports";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +51,7 @@ export default async function ImportPage() {
                     {b.fileName}
                   </Link>
                 </TableCell>
-                <TableCell className="capitalize text-muted-foreground">{b.importType}</TableCell>
+                <TableCell className="text-muted-foreground">{IMPORT_TYPE_LABELS[b.importType] ?? b.importType}</TableCell>
                 {isSuperAdmin && <TableCell className="text-muted-foreground">{b.branchName ?? "—"}</TableCell>}
                 <TableCell className="text-muted-foreground">{b.uploadedByName}</TableCell>
                 <TableCell className="text-muted-foreground">{new Date(b.createdAt).toLocaleString()}</TableCell>

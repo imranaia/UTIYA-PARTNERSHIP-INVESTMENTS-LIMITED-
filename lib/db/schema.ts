@@ -162,6 +162,7 @@ export const importRows = pgTable("import_rows", {
   createdClientId: integer("created_client_id").references(() => clients.id),
   createdTxnId: integer("created_txn_id"), // no FK: client_transactions is declared after this table
   createdExpenseId: integer("created_expense_id"), // no FK: expenses is declared after this table
+  createdCashBookEntryId: integer("created_cash_book_entry_id"), // no FK: cash_book_entries is declared after this table
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

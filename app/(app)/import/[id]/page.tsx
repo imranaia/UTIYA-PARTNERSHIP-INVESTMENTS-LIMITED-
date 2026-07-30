@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireModule } from "@/lib/auth/session";
-import { getImportBatch, getImportBatchRows } from "@/lib/db/imports";
+import { getImportBatch, getImportBatchRows, IMPORT_TYPE_LABELS } from "@/lib/db/imports";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { BackLink } from "@/components/layout/BackLink";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ export default async function ImportBatchPage({ params }: { params: Promise<{ id
       <BackLink href="/import" label="Back to Excel Import" />
       <div className="flex items-center gap-2.5">
         <h1 className="text-lg font-semibold">{batch.fileName}</h1>
+        <Badge variant="secondary">{IMPORT_TYPE_LABELS[batch.importType] ?? batch.importType}</Badge>
         <Badge variant={batch.status === "completed" ? "default" : "secondary"} className="capitalize">
           {batch.status}
         </Badge>
@@ -56,10 +57,24 @@ export default async function ImportBatchPage({ params }: { params: Promise<{ id
           <TableBody>
             {rows.map((r) => {
               const raw = r.rawData as Record<string, unknown>;
-              const name = batch.importType === "expenses" ? raw["Description"] : raw["Full Name"];
+              const name =
+                {
+                  clients: raw["Full Name"],
+                  expenses: raw["Description"],
+                  transactions: raw["Client Code"],
+                  cash_book: raw["Details"] || raw["Date"],
+                }[batch.importType] ?? raw["Full Name"];
               const detail =
                 r.errorMessage ??
-                (r.createdClientId ? "Client created" : r.createdExpenseId ? "Expense created" : "—");
+                (r.createdClientId
+                  ? "Client created"
+                  : r.createdExpenseId
+                    ? "Expense created"
+                    : r.createdTxnId
+                      ? "Transaction saved"
+                      : r.createdCashBookEntryId
+                        ? "Entry created"
+                        : "—");
               return (
                 <TableRow key={r.id}>
                   <TableCell>{r.rowNumber}</TableCell>

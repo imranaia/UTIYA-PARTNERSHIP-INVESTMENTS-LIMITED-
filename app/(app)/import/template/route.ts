@@ -1,10 +1,29 @@
 import { requireModule } from "@/lib/auth/session";
-import { buildClientsTemplate, buildExpensesTemplate } from "@/lib/services/excelImport";
+import {
+  buildClientsTemplate,
+  buildExpensesTemplate,
+  buildTransactionsTemplate,
+  buildCashBookTemplate,
+} from "@/lib/services/excelImport";
+
+const BUILDERS = {
+  clients: buildClientsTemplate,
+  expenses: buildExpensesTemplate,
+  transactions: buildTransactionsTemplate,
+  cash_book: buildCashBookTemplate,
+} as const;
+
+type ImportType = keyof typeof BUILDERS;
+
+function isImportType(v: string | null): v is ImportType {
+  return !!v && v in BUILDERS;
+}
 
 export async function GET(request: Request) {
   await requireModule("import", "view");
-  const type = new URL(request.url).searchParams.get("type") === "expenses" ? "expenses" : "clients";
-  const buffer = type === "expenses" ? await buildExpensesTemplate() : await buildClientsTemplate();
+  const typeParam = new URL(request.url).searchParams.get("type");
+  const type: ImportType = isImportType(typeParam) ? typeParam : "clients";
+  const buffer = await BUILDERS[type]();
 
   return new Response(new Uint8Array(buffer), {
     headers: {

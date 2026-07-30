@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import { requireModule } from "@/lib/auth/session";
 import { listLoanCollectorsForBranch } from "@/lib/db/users";
 import { listExpenseCategories } from "@/lib/db/expenses";
-import { parseClientsWorkbook, parseExpensesWorkbook } from "@/lib/services/excelImport";
-import { runClientImport, runExpenseImport } from "@/lib/db/imports";
+import { mapClientCodesToIds } from "@/lib/db/clients";
+import { parseClientsWorkbook, parseExpensesWorkbook, parseTransactionsWorkbook, parseCashBookWorkbook } from "@/lib/services/excelImport";
+import { runClientImport, runExpenseImport, runTransactionImport, runCashBookImport } from "@/lib/db/imports";
 
 export type ImportFormState = { error: string | null };
 
@@ -80,6 +81,77 @@ export async function importExpensesAction(_prevState: ImportFormState, formData
     uploadedBy: user.userId,
     rows,
     categoriesByName,
+  });
+
+  redirect(`/import/${result.batchId}`);
+}
+
+export async function importTransactionsAction(_prevState: ImportFormState, formData: FormData): Promise<ImportFormState> {
+  const user = await requireModule("import", "create");
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Please choose an Excel file." };
+  }
+
+  const branchId = user.roleKey === "super_admin" ? Number(formData.get("branchId")) : user.branchId;
+  if (!branchId) {
+    return { error: "A branch is required." };
+  }
+
+  let rows;
+  try {
+    const buffer = await file.arrayBuffer();
+    rows = await parseTransactionsWorkbook(buffer);
+  } catch {
+    return { error: "Could not read the file. Make sure it's a valid .xlsx file." };
+  }
+  if (rows.length === 0) {
+    return { error: "No data rows found in the file." };
+  }
+
+  const clientCodesById = await mapClientCodesToIds(branchId);
+
+  const result = await runTransactionImport({
+    branchId,
+    fileName: file.name,
+    uploadedBy: user.userId,
+    rows,
+    clientCodesById,
+  });
+
+  redirect(`/import/${result.batchId}`);
+}
+
+export async function importCashBookAction(_prevState: ImportFormState, formData: FormData): Promise<ImportFormState> {
+  const user = await requireModule("import", "create");
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Please choose an Excel file." };
+  }
+
+  const branchId = user.roleKey === "super_admin" ? Number(formData.get("branchId")) : user.branchId;
+  if (!branchId) {
+    return { error: "A branch is required." };
+  }
+
+  let rows;
+  try {
+    const buffer = await file.arrayBuffer();
+    rows = await parseCashBookWorkbook(buffer);
+  } catch {
+    return { error: "Could not read the file. Make sure it's a valid .xlsx file." };
+  }
+  if (rows.length === 0) {
+    return { error: "No data rows found in the file." };
+  }
+
+  const result = await runCashBookImport({
+    branchId,
+    fileName: file.name,
+    uploadedBy: user.userId,
+    rows,
   });
 
   redirect(`/import/${result.batchId}`);

@@ -141,6 +141,12 @@ export async function filterClientIdsInBranch(clientIds: number[], branchId: num
   return new Set(rows.map((r) => r.id));
 }
 
+export async function mapClientCodesToIds(branchId: number) {
+  const db = getDb();
+  const rows = await db.select({ id: clients.id, clientCode: clients.clientCode }).from(clients).where(eq(clients.branchId, branchId));
+  return new Map(rows.map((r) => [r.clientCode.toLowerCase(), r.id]));
+}
+
 export async function listClientTransactions(clientId: number) {
   const db = getDb();
   return db
