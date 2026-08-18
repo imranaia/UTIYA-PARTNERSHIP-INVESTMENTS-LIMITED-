@@ -111,6 +111,31 @@ async function recomputeSavingsForward(tx: DbTx, clientId: number, fromDate: str
   }
 }
 
+// Used by the approval workflow to tell a create (goes through immediately)
+// from an edit of an existing row (may need approval) before deciding.
+export async function getExistingTransactionId(clientId: number, transactionDate: string) {
+  const db = getDb();
+  const [row] = await db
+    .select({ id: clientTransactions.id })
+    .from(clientTransactions)
+    .where(and(eq(clientTransactions.clientId, clientId), eq(clientTransactions.transactionDate, transactionDate)));
+  return row?.id ?? null;
+}
+
+// Full existing row values for a client/date, so a caller that only wants to
+// add one figure (e.g. recording a loan-agreement disbursement) can merge
+// into the existing row instead of overwriting it — saveTransactionRow's
+// upsert always sets every field, so passing zeros for the rest would wipe
+// out anything else already recorded for that client that day.
+export async function getTransactionRow(clientId: number, transactionDate: string) {
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(clientTransactions)
+    .where(and(eq(clientTransactions.clientId, clientId), eq(clientTransactions.transactionDate, transactionDate)));
+  return row ?? null;
+}
+
 export async function saveTransactionRow(data: {
   clientId: number;
   branchId: number;
@@ -178,6 +203,46 @@ export async function saveTransactionRow(data: {
 
     await recomputeSavingsForward(tx, data.clientId, data.transactionDate);
   });
+}
+
+// Applies an approved pending_changes patch to an existing client_transactions
+// row — a partial update (only the keys present in `patch`), unlike
+// saveTransactionRow's full insert-or-update. Used by the approvals page,
+// which never knows more than what the original requester proposed.
+const PATCHABLE_TXN_FIELDS = [
+  "loanDisbursement",
+  "loanRecovery",
+  "profitInterest",
+  "serviceCharge",
+  "newSavings",
+  "savingsRecall",
+  "collateralTransferIn",
+  "collateralTransferOut",
+  "notes",
+] as const;
+
+export async function applyClientTransactionPatch(id: number, patch: Record<string, unknown>) {
+  const db = getDb();
+  const [target] = await db
+    .select({ clientId: clientTransactions.clientId, transactionDate: clientTransactions.transactionDate })
+    .from(clientTransactions)
+    .where(eq(clientTransactions.id, id));
+  if (!target) return null;
+
+  const set: Record<string, unknown> = { updatedAt: new Date() };
+  for (const key of PATCHABLE_TXN_FIELDS) {
+    if (key in patch) set[key] = patch[key];
+  }
+  if ("supplementaryOverride" in patch) {
+    set.supplementaryOverride = patch.supplementaryOverride ? "not_supplementary" : null;
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.update(clientTransactions).set(set).where(eq(clientTransactions.id, id));
+    await recomputeSavingsForward(tx, target.clientId, target.transactionDate);
+  });
+
+  return target;
 }
 
 export function isEmptyRow(d: {

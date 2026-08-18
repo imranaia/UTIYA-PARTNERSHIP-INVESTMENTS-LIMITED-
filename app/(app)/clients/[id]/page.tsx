@@ -1,12 +1,32 @@
 import { notFound } from "next/navigation";
 import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { getClientById, listClientTransactions } from "@/lib/db/clients";
+import { getActiveLoanSummary } from "@/lib/db/loanAgreements";
+import { getClientLogin } from "@/lib/db/users";
+import { getLatestChecklist } from "@/lib/db/checklists";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { BackLink } from "@/components/layout/BackLink";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CheckCircle2, XCircle } from "lucide-react";
 import { ClientStatusControl } from "./ClientStatusControl";
 import { RecordMaturityDialog } from "./RecordMaturityDialog";
+import { LoanAgreementDialog } from "./LoanAgreementDialog";
+import { ChecklistDialog } from "./ChecklistDialog";
+import { PortalPanel } from "./PortalPanel";
+
+function CheckStat({ label, done }: { label: string; done: boolean }) {
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      {done ? (
+        <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+      ) : (
+        <XCircle className="size-4 shrink-0 text-muted-foreground" />
+      )}
+      <span className={done ? "" : "text-muted-foreground"}>{label}</span>
+    </div>
+  );
+}
 
 function money(n: string | number) {
   return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -24,6 +44,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   if (user.roleKey !== "super_admin" && client.branchId !== user.branchId) notFound();
 
   const transactions = await listClientTransactions(clientId);
+  const loanSummary = await getActiveLoanSummary(clientId);
+  const portalLogin = await getClientLogin(clientId);
+  const checklist = await getLatestChecklist(clientId);
 
   return (
     <div className="space-y-4">
@@ -36,7 +59,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </Badge>
           {canEdit && <ClientStatusControl clientId={client.id} status={client.status} />}
         </div>
-        {canEdit && <RecordMaturityDialog clientId={client.id} branchId={client.branchId} />}
+        <div className="flex items-center gap-2">
+          {canEdit && <ChecklistDialog clientId={client.id} />}
+          {canEdit && <LoanAgreementDialog clientId={client.id} />}
+          {canEdit && <RecordMaturityDialog clientId={client.id} branchId={client.branchId} />}
+        </div>
       </div>
 
       <GlassPanel className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-3">
@@ -61,7 +88,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           <p className="font-medium">{client.enrollmentDate}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Loan collector</p>
+          <p className="text-xs text-muted-foreground">Collections officer</p>
           <p className="font-medium">{client.loanCollectorName || "Unassigned"}</p>
         </div>
         <div>
@@ -74,6 +101,81 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         </div>
       </GlassPanel>
 
+      {loanSummary && (
+        <GlassPanel className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-4">
+          <div>
+            <p className="text-xs text-muted-foreground">Principal</p>
+            <p className="text-lg font-semibold">{money(loanSummary.agreement.principalAmount)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Profit</p>
+            <p className="text-lg font-semibold">{money(loanSummary.agreement.profitAmount)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Next payment due</p>
+            <p className="text-lg font-semibold">
+              {loanSummary.nextDue ? `${money(loanSummary.nextDue.dueAmount)} on ${loanSummary.nextDue.dueDate}` : "—"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Remaining balance</p>
+            <p className="text-lg font-semibold text-primary">{money(loanSummary.remainingBalance)}</p>
+          </div>
+        </GlassPanel>
+      )}
+
+      {checklist && (
+        <GlassPanel className="space-y-3 p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-muted-foreground">Pre-disbursement checklist</h2>
+            <span className="text-xs text-muted-foreground">
+              {new Date(checklist.createdAt).toLocaleDateString()} &middot; {checklist.officerName}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-3">
+            <CheckStat label="Shop owner" done={checklist.shopOwner} />
+            <CheckStat label="Renting shop" done={checklist.rentingShop} />
+            <CheckStat label="GPS photo verified" done={checklist.gpsPhotoVerified} />
+            <CheckStat label="GPS time verified" done={checklist.gpsTimeVerified} />
+            <CheckStat label="Application form filled" done={checklist.applicationFormFilled} />
+            <CheckStat label="Appraisal report attached" done={checklist.appraisalReportAttached} />
+            <CheckStat label="Stock availability checked" done={checklist.stockAvailabilityChecked} />
+            {checklist.clientType === "returning" && (
+              <>
+                <CheckStat label="Supervision report attached" done={!!checklist.supervisionReportAttached} />
+                <CheckStat label="Principal amount reviewed" done={!!checklist.loanAmountReviewed} />
+              </>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-4 border-t border-border pt-3 sm:grid-cols-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Client type</p>
+              <p className="text-sm font-medium capitalize">{checklist.clientType}</p>
+            </div>
+            {checklist.amountApproved && (
+              <div>
+                <p className="text-xs text-muted-foreground">Amount approved</p>
+                <p className="text-sm font-medium">{money(checklist.amountApproved)}</p>
+              </div>
+            )}
+            {checklist.preferredTenureMonths && (
+              <div>
+                <p className="text-xs text-muted-foreground">Preferred tenure</p>
+                <p className="text-sm font-medium">{checklist.preferredTenureMonths} months</p>
+              </div>
+            )}
+            {checklist.nin && (
+              <div>
+                <p className="text-xs text-muted-foreground">NIN</p>
+                <p className="text-sm font-medium">{checklist.nin}</p>
+              </div>
+            )}
+          </div>
+        </GlassPanel>
+      )}
+
+      {canEdit && <PortalPanel clientId={client.id} existingLogin={portalLogin} />}
+
       <h2 className="text-sm font-semibold text-muted-foreground">Transaction history</h2>
       <GlassPanel className="overflow-hidden p-0">
         <Table>
@@ -81,7 +183,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Payment ID</TableHead>
-              <TableHead className="text-right">Loan Disb.</TableHead>
+              <TableHead className="text-right">Principal Disb.</TableHead>
               <TableHead className="text-right">Recall</TableHead>
               <TableHead className="text-right">New Savings</TableHead>
               <TableHead className="text-right">Collateral In</TableHead>

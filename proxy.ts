@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getIronSession } from "iron-session";
 import { sessionOptions, type SessionData } from "@/lib/auth/session";
 
-const PUBLIC_PATHS = ["/login", "/icon", "/apple-icon"];
+const PUBLIC_PATHS = ["/", "/login", "/icon", "/apple-icon"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

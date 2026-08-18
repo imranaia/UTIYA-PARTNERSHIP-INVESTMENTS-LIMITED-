@@ -13,6 +13,8 @@ export type SessionData = {
   roleId: number;
   roleKey: string;
   branchId: number | null;
+  // Set only for portal accounts (role "client") — the borrower's own client record.
+  clientId: number | null;
   tokenVersion: number;
 };
 
@@ -76,7 +78,42 @@ export async function requireActiveUser(): Promise<SessionData> {
     redirect("/change-password");
   }
 
+  // Portal (borrower) accounts have no business in the staff app — bounce
+  // them to their own read-only area instead of erroring on module checks.
+  if (sessionUser.roleKey === "client") {
+    redirect("/portal");
+  }
+
   return sessionUser;
+}
+
+// Server Components/pages under the client portal: redirects to /login if
+// unauthenticated, and to /dashboard if authenticated but not a portal
+// (role "client") account. The portal has its own row-scoped auth — it
+// intentionally bypasses the module/role_permissions system entirely, since
+// that system answers "can this role see the Clients module", not "can this
+// user see only their own client record."
+export async function requirePortalClient(): Promise<SessionData & { clientId: number }> {
+  const sessionUser = await requireUser();
+  const db = getDb();
+  const [dbUser] = await db.select().from(users).where(eq(users.id, sessionUser.userId));
+
+  if (!dbUser || !dbUser.isActive || dbUser.tokenVersion !== sessionUser.tokenVersion) {
+    redirect("/login");
+  }
+  if (dbUser.mustChangePassword) {
+    redirect("/change-password");
+  }
+  if (sessionUser.roleKey !== "client" || !sessionUser.clientId) {
+    redirect("/dashboard");
+  }
+
+  return { ...sessionUser, clientId: sessionUser.clientId };
+}
+
+// Roles that can approve pending changes and whose own edits apply immediately.
+export function isAdmin(roleKey: string): boolean {
+  return roleKey === "super_admin" || roleKey === "branch_admin";
 }
 
 export type ModuleAction = "view" | "create" | "edit" | "delete";

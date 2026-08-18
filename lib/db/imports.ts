@@ -6,8 +6,19 @@ import { createClient } from "./clients";
 import { createExpense } from "./expenses";
 import { saveTransactionRow, isEmptyRow } from "./transactions";
 import { createCashBookEntry } from "./cashBook";
-import { InvalidEnrollmentDateError } from "@/lib/services/clientCode";
+import { PAYMENT_DAYS } from "@/lib/constants/paymentDays";
 import type { ParsedClientRow, ParsedExpenseRow, ParsedTransactionRow, ParsedCashBookRow } from "@/lib/services/excelImport";
+
+const PAYMENT_DAY_BY_NAME = new Map(PAYMENT_DAYS.map((d) => [d.label.toLowerCase(), d.value]));
+
+function parsePaymentDay(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  const byName = PAYMENT_DAY_BY_NAME.get(trimmed.toLowerCase());
+  if (byName) return byName;
+  const asNumber = Number(trimmed);
+  return Number.isInteger(asNumber) && asNumber >= 1 && asNumber <= 6 ? asNumber : undefined;
+}
 
 export const IMPORT_TYPE_LABELS: Record<string, string> = {
   clients: "Clients",
@@ -106,6 +117,10 @@ export async function runClientImport(params: {
       if (!row.enrollmentDate || Number.isNaN(Date.parse(row.enrollmentDate))) {
         throw new Error("Enrollment date is missing or invalid.");
       }
+      const paymentDay = parsePaymentDay(row.paymentDay);
+      if (!paymentDay) {
+        throw new Error("Payment Day is missing or invalid — use Monday–Saturday.");
+      }
 
       const loanCollectorId = row.loanCollectorName
         ? params.collectorsByName.get(row.loanCollectorName.toLowerCase())
@@ -118,6 +133,7 @@ export async function runClientImport(params: {
         address: row.address || undefined,
         groupName: row.groupName || undefined,
         enrollmentDate: new Date(row.enrollmentDate),
+        paymentDay,
         loanCollectorId,
         openingSavings: row.openingSavings || undefined,
         createdByUserId: params.uploadedBy,
@@ -132,7 +148,7 @@ export async function runClientImport(params: {
       });
       successRows++;
     } catch (err) {
-      const message = err instanceof InvalidEnrollmentDateError || err instanceof Error ? err.message : "Unknown error.";
+      const message = err instanceof Error ? err.message : "Unknown error.";
       await db.insert(importRows).values({
         importBatchId: batch.id,
         rowNumber: row.rowNumber,

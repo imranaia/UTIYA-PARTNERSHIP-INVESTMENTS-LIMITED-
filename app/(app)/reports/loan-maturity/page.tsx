@@ -22,9 +22,9 @@ export default async function LoanMaturityPage() {
     <div className="space-y-4">
       <BackLink href="/reports" label="Back to Reports" />
       <div>
-        <h1 className="text-lg font-semibold">Loan Maturity</h1>
+        <h1 className="text-lg font-semibold">Principal Maturity</h1>
         <p className="text-sm text-muted-foreground">
-          Clients whose loan cycle ended, and whether they took a new loan — matches the source ledger&apos;s own
+          Clients whose principal cycle ended, and whether they took new principal — matches the source ledger&apos;s own
           &quot;Returning Clients of the Day not Renewing their Loans&quot; tracking.
         </p>
       </div>
@@ -79,7 +79,7 @@ export default async function LoanMaturityPage() {
             {rows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={isSuperAdmin ? 7 : 6} className="text-center text-muted-foreground">
-                  No loan maturity events recorded yet.
+                  No principal maturity events recorded yet.
                 </TableCell>
               </TableRow>
             )}

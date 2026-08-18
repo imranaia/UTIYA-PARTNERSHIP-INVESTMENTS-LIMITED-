@@ -41,11 +41,11 @@ export function BranchBreakdownCard({ branch, reportDate }: { branch: BranchBrea
             <dd className="font-medium">{branch.activeClients.toLocaleString()}</dd>
           </div>
           <div>
-            <dt className="text-xs text-muted-foreground">Loan Disb.</dt>
+            <dt className="text-xs text-muted-foreground">Principal Disb.</dt>
             <dd className="font-medium">{money(branch.loanDisbursement)}</dd>
           </div>
           <div>
-            <dt className="text-xs text-muted-foreground">Loan Recovery</dt>
+            <dt className="text-xs text-muted-foreground">Principal Recovery</dt>
             <dd className="font-medium">{money(branch.loanRecovery)}</dd>
           </div>
           <div>

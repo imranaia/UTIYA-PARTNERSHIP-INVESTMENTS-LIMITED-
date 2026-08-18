@@ -54,5 +54,5 @@ export async function changePassword(_prevState: ChangePasswordState, formData: 
   session.user = { ...sessionUser, tokenVersion: newTokenVersion };
   await session.save();
 
-  redirect("/dashboard");
+  redirect(sessionUser.roleKey === "client" ? "/portal" : "/dashboard");
 }

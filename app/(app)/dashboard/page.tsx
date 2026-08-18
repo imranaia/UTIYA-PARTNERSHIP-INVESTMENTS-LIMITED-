@@ -119,7 +119,7 @@ export default async function DashboardPage() {
 
       <GlassPanel data-tour="tour-dashboard-stats" className="grid grid-cols-2 gap-6 p-6 sm:grid-cols-3">
         <StatTile icon={Users} label="Active Clients" value={portfolio.activeClients.toLocaleString()} />
-        <StatTile icon={Wallet} label="Active Loans Outstanding" value={money(loanPortfolio.activeLoanBalance)} />
+        <StatTile icon={Wallet} label="Active Principal Outstanding" value={money(loanPortfolio.activeLoanBalance)} />
         <StatTile icon={PiggyBank} label="Total Capital (Savings)" value={money(portfolio.totalSavings)} />
         <StatTile icon={ShieldCheck} label="Total Collateral Held" value={money(totalCollateral)} />
         <StatTile icon={ReceiptText} label="Today's Expenses" value={money(dailyExpenses)} emphasis="negative" />
@@ -135,8 +135,8 @@ export default async function DashboardPage() {
         <GlassPanel className="p-6 lg:col-span-2">
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Today — {reportDate}</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <StatTile icon={ArrowDownCircle} label="Loan Disbursement" value={money(dailyTotals?.loanDisbursement ?? 0)} />
-            <StatTile icon={ArrowUpCircle} label="Loan Recovery" value={money(dailyTotals?.loanRecovery ?? 0)} />
+            <StatTile icon={ArrowDownCircle} label="Principal Disbursement" value={money(dailyTotals?.loanDisbursement ?? 0)} />
+            <StatTile icon={ArrowUpCircle} label="Principal Recovery" value={money(dailyTotals?.loanRecovery ?? 0)} />
             <StatTile icon={PiggyBank} label="New Savings" value={money(dailyTotals?.newSavings ?? 0)} />
           </div>
           <div className="mt-4 border-t border-border pt-4">

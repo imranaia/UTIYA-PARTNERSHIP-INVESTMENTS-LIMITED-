@@ -3,10 +3,11 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/session";
-import { createClient, updateClient, setClientStatus, CLIENT_STATUSES, type ClientStatus } from "@/lib/db/clients";
+import { requireModule, isAdmin } from "@/lib/auth/session";
+import { createClient, updateClient, getClientById, setClientStatus, CLIENT_STATUSES, type ClientStatus } from "@/lib/db/clients";
 import { createLoanMaturityEvent } from "@/lib/db/loanMaturity";
-import { InvalidEnrollmentDateError } from "@/lib/services/clientCode";
+import { InvalidPaymentDayError } from "@/lib/services/clientCode";
+import { submitForApproval } from "@/lib/db/pendingChanges";
 import { logAction } from "@/lib/db/audit";
 
 const clientSchema = z.object({
@@ -17,12 +18,13 @@ const clientSchema = z.object({
   businessType: z.string().trim().max(80).optional().or(z.literal("")),
   businessLocation: z.string().trim().max(120).optional().or(z.literal("")),
   enrollmentDate: z.string().refine((v) => !Number.isNaN(Date.parse(v)), "Invalid date"),
+  paymentDay: z.coerce.number().int().min(1).max(6),
   branchId: z.coerce.number().int().positive().optional(),
   loanCollectorId: z.coerce.number().int().positive().optional(),
   openingSavings: z.coerce.number().nonnegative().optional(),
 });
 
-export type ClientFormState = { error: string | null };
+export type ClientFormState = { error: string | null; submitted?: boolean };
 
 export async function createClientAction(_prevState: ClientFormState, formData: FormData): Promise<ClientFormState> {
   const user = await requireModule("clients", "create");
@@ -35,6 +37,7 @@ export async function createClientAction(_prevState: ClientFormState, formData: 
     businessType: formData.get("businessType"),
     businessLocation: formData.get("businessLocation"),
     enrollmentDate: formData.get("enrollmentDate"),
+    paymentDay: formData.get("paymentDay"),
     branchId: formData.get("branchId") || undefined,
     loanCollectorId: formData.get("loanCollectorId") || undefined,
     openingSavings: formData.get("openingSavings") || undefined,
@@ -59,12 +62,13 @@ export async function createClientAction(_prevState: ClientFormState, formData: 
       businessType: parsed.data.businessType || undefined,
       businessLocation: parsed.data.businessLocation || undefined,
       enrollmentDate: new Date(parsed.data.enrollmentDate),
+      paymentDay: parsed.data.paymentDay,
       loanCollectorId: parsed.data.loanCollectorId,
       openingSavings: parsed.data.openingSavings?.toString(),
       createdByUserId: user.userId,
     });
   } catch (err) {
-    if (err instanceof InvalidEnrollmentDateError) {
+    if (err instanceof InvalidPaymentDayError) {
       return { error: err.message };
     }
     throw err;
@@ -111,7 +115,12 @@ export async function updateClientAction(_prevState: ClientFormState, formData: 
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const client = await updateClient(parsed.data.clientId, {
+  const existing = await getClientById(parsed.data.clientId);
+  if (!existing) {
+    return { error: "Client not found." };
+  }
+
+  const proposedChanges = {
     fullName: parsed.data.fullName,
     phone: parsed.data.phone || undefined,
     address: parsed.data.address || undefined,
@@ -119,7 +128,21 @@ export async function updateClientAction(_prevState: ClientFormState, formData: 
     businessType: parsed.data.businessType || undefined,
     businessLocation: parsed.data.businessLocation || undefined,
     loanCollectorId: parsed.data.loanCollectorId ?? null,
-  });
+  };
+
+  if (!isAdmin(user.roleKey)) {
+    await submitForApproval({
+      entityType: "client",
+      entityId: existing.id,
+      branchId: existing.branchId,
+      proposedChanges,
+      requestedBy: user.userId,
+    });
+    revalidatePath(`/clients/${existing.id}`);
+    return { error: null, submitted: true };
+  }
+
+  const client = await updateClient(parsed.data.clientId, proposedChanges);
   if (!client) {
     return { error: "Client not found." };
   }

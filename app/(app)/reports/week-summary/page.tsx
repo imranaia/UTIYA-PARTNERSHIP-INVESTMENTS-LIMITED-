@@ -127,7 +127,7 @@ export default async function WeekSummaryPage({
           <Line label="Funds Transfer Out" value={money(fundsTransferOut)} />
           <Line label="Liability Payments" value={money(liabilityPayments)} />
           <Line label="Purchase of Assets" value={money(assetPurchase)} />
-          <Line label="Loan Disbursement" value={money(loanDisbursement)} />
+          <Line label="Principal Disbursement" value={money(loanDisbursement)} />
           <Line label="Recall of Borrowings" value={money(borrowingRecall)} />
           <div className="mt-2 border-t border-border pt-2">
             <Line label="Total Debits" value={money(totalDebits)} bold />
@@ -139,7 +139,7 @@ export default async function WeekSummaryPage({
           <Line label="Disposal of Assets" value={money(assetDisposal)} />
           <Line label="Funds Transferred In" value={money(fundsTransferIn)} />
           <Line label="New Liability" value={money(newLiability)} />
-          <Line label="Recovery of Loans" value={money(loanRecovery)} />
+          <Line label="Recovery of Principal" value={money(loanRecovery)} />
           <Line label="New Borrowings" value={money(newBorrowing)} />
           <Line label="Operating / Investment Income" value={money(operatingIncome)} />
           <div className="mt-2 border-t border-border pt-2">

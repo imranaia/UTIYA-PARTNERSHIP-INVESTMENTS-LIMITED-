@@ -53,12 +53,22 @@ export type ParsedClientRow = {
   address?: string;
   groupName?: string;
   enrollmentDate?: string;
+  paymentDay?: string;
   loanCollectorName?: string;
   openingSavings?: string;
   raw: Record<string, unknown>;
 };
 
-const CLIENT_COLUMNS = ["Full Name", "Phone", "Address", "Group", "Enrollment Date", "Loan Collector", "Opening Savings"] as const;
+const CLIENT_COLUMNS = [
+  "Full Name",
+  "Phone",
+  "Address",
+  "Group",
+  "Enrollment Date",
+  "Payment Day",
+  "Collections Officer",
+  "Opening Savings",
+] as const;
 
 export async function parseClientsWorkbook(buffer: ArrayBuffer): Promise<ParsedClientRow[]> {
   const rows = await readSheetRows(buffer, CLIENT_COLUMNS);
@@ -69,7 +79,8 @@ export async function parseClientsWorkbook(buffer: ArrayBuffer): Promise<ParsedC
     address: raw["Address"] || undefined,
     groupName: raw["Group"] || undefined,
     enrollmentDate: raw["Enrollment Date"] || undefined,
-    loanCollectorName: raw["Loan Collector"] || undefined,
+    paymentDay: raw["Payment Day"] || undefined,
+    loanCollectorName: raw["Collections Officer"] || undefined,
     openingSavings: raw["Opening Savings"] || undefined,
     raw,
   }));
@@ -85,7 +96,8 @@ export async function buildClientsTemplate(): Promise<Buffer> {
     Address: "12 Main Street",
     Group: "Group A",
     "Enrollment Date": "2026-07-27",
-    "Loan Collector": "",
+    "Payment Day": "Monday",
+    "Collections Officer": "",
     "Opening Savings": "0",
   });
   const buffer = await workbook.xlsx.writeBuffer();
@@ -155,9 +167,9 @@ export type ParsedTransactionRow = {
 const TRANSACTION_COLUMNS = [
   "Client Code",
   "Date",
-  "Loan Disbursement",
-  "Loan Recovery",
-  "Interest",
+  "Principal Disbursement",
+  "Principal Recovery",
+  "Profit",
   "Service Charge",
   "New Savings",
   "Savings Recall",
@@ -172,9 +184,9 @@ export async function parseTransactionsWorkbook(buffer: ArrayBuffer): Promise<Pa
     rowNumber,
     clientCode: raw["Client Code"] || undefined,
     transactionDate: raw["Date"] || undefined,
-    loanDisbursement: raw["Loan Disbursement"] || undefined,
-    loanRecovery: raw["Loan Recovery"] || undefined,
-    profitInterest: raw["Interest"] || undefined,
+    loanDisbursement: raw["Principal Disbursement"] || undefined,
+    loanRecovery: raw["Principal Recovery"] || undefined,
+    profitInterest: raw["Profit"] || undefined,
     serviceCharge: raw["Service Charge"] || undefined,
     newSavings: raw["New Savings"] || undefined,
     savingsRecall: raw["Savings Recall"] || undefined,
@@ -192,9 +204,9 @@ export async function buildTransactionsTemplate(): Promise<Buffer> {
   sheet.addRow({
     "Client Code": "ZUB-41-132",
     Date: "2026-07-27",
-    "Loan Disbursement": "0",
-    "Loan Recovery": "20000",
-    Interest: "3460",
+    "Principal Disbursement": "0",
+    "Principal Recovery": "20000",
+    Profit: "3460",
     "Service Charge": "350",
     "New Savings": "1190",
     "Savings Recall": "0",

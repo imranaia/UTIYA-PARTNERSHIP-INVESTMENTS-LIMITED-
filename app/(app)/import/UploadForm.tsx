@@ -25,10 +25,11 @@ const KIND_LABEL: Record<ImportKind, string> = {
   cash_book: "Cash Book",
 };
 const KIND_HINT: Record<ImportKind, string> = {
-  clients: "Upload an .xlsx file with columns: Full Name, Phone, Address, Group, Enrollment Date, Loan Collector, Opening Savings.",
+  clients:
+    "Upload an .xlsx file with columns: Full Name, Phone, Address, Group, Enrollment Date, Payment Day, Collections Officer, Opening Savings.",
   expenses: "Upload an .xlsx file with columns: Category, Description, Amount, Expense Date, Receipt Ref.",
   transactions:
-    "Upload an .xlsx file with columns: Client Code, Date, Loan Disbursement, Loan Recovery, Interest, Service Charge, New Savings, Savings Recall, Collateral In, Collateral Out, Notes.",
+    "Upload an .xlsx file with columns: Client Code, Date, Principal Disbursement, Principal Recovery, Profit, Service Charge, New Savings, Savings Recall, Collateral In, Collateral Out, Notes.",
   cash_book: "Upload an .xlsx file with columns: Date, Account, Details, Ref Type (OR/PV/CQ), Debit, Credit.",
 };
 

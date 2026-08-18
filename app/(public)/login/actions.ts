@@ -51,11 +51,15 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     roleId: user.roleId,
     roleKey: user.roleKey,
     branchId: user.branchId,
+    clientId: user.clientId,
     tokenVersion: user.tokenVersion,
   };
   await session.save();
 
-  redirect(user.mustChangePassword ? "/change-password" : next || "/dashboard");
+  if (user.mustChangePassword) {
+    redirect("/change-password");
+  }
+  redirect(user.roleKey === "client" ? "/portal" : next || "/dashboard");
 }
 
 export async function logout() {

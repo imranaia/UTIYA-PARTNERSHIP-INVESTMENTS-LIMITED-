@@ -5,9 +5,9 @@ import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 export const REPORT_METRICS = [
-  { key: "loanDisbursement", label: "Loan Disbursement" },
-  { key: "loanRecovery", label: "Loan Recovery" },
-  { key: "profitInterest", label: "Profit / Interest" },
+  { key: "loanDisbursement", label: "Principal Disbursement" },
+  { key: "loanRecovery", label: "Principal Recovery" },
+  { key: "profitInterest", label: "Profit" },
   { key: "serviceCharge", label: "Service Charge" },
   { key: "newSavings", label: "New Savings" },
   { key: "savingsRecall", label: "Savings Recall" },

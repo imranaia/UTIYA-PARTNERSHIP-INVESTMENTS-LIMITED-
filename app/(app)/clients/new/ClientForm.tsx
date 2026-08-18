@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createClientAction, type ClientFormState } from "../actions";
+import { PAYMENT_DAYS } from "@/lib/constants/paymentDays";
 
 const initialState: ClientFormState = { error: null };
 
@@ -82,12 +83,30 @@ export function ClientForm({
       <div className="space-y-1.5">
         <Label htmlFor="enrollmentDate">Enrollment date</Label>
         <Input id="enrollmentDate" name="enrollmentDate" type="date" defaultValue={today()} required />
-        <p className="text-xs text-muted-foreground">Must be a weekday — this permanently fixes the client&apos;s code.</p>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="paymentDay">Payment day</Label>
+        <Select name="paymentDay" required>
+          <SelectTrigger id="paymentDay" className="w-full">
+            <SelectValue placeholder="Which day will they pay?" />
+          </SelectTrigger>
+          <SelectContent>
+            {PAYMENT_DAYS.map((d) => (
+              <SelectItem key={d.value} value={String(d.value)}>
+                {d.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          The client&apos;s weekly collection day — this permanently fixes part of their client code.
+        </p>
       </div>
 
       {collectors.length > 0 && (
         <div className="space-y-1.5">
-          <Label htmlFor="loanCollectorId">Loan collector (optional)</Label>
+          <Label htmlFor="loanCollectorId">Collections officer (optional)</Label>
           <Select name="loanCollectorId" key={branchId}>
             <SelectTrigger id="loanCollectorId" className="w-full">
               <SelectValue placeholder="Assign later" />

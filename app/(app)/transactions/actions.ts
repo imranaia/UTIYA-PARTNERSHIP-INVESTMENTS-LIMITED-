@@ -2,13 +2,14 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/session";
-import { saveTransactionRow, isEmptyRow } from "@/lib/db/transactions";
+import { requireModule, isAdmin } from "@/lib/auth/session";
+import { saveTransactionRow, isEmptyRow, getExistingTransactionId } from "@/lib/db/transactions";
 import { filterClientIdsInBranch } from "@/lib/db/clients";
 import { setDutyAssignment, DUTY_POSTS } from "@/lib/db/dutyAssignments";
+import { submitForApproval } from "@/lib/db/pendingChanges";
 import { logAction } from "@/lib/db/audit";
 
-export type DailyTransactionsState = { error: string | null; savedCount: number };
+export type DailyTransactionsState = { error: string | null; savedCount: number; submittedCount?: number };
 
 const rowSchema = z.object({
   loanDisbursement: z.coerce.number().nonnegative().default(0),
@@ -49,6 +50,7 @@ export async function saveDailyTransactionsAction(
   const allowedIds = await filterClientIdsInBranch(clientIds, branchId);
 
   let savedCount = 0;
+  let submittedCount = 0;
   for (const clientId of clientIds) {
     if (!allowedIds.has(clientId)) continue;
 
@@ -66,10 +68,7 @@ export async function saveDailyTransactionsAction(
     if (!parsed.success || isEmptyRow(parsed.data)) continue;
 
     const d = parsed.data;
-    await saveTransactionRow({
-      clientId,
-      branchId,
-      transactionDate,
+    const rowValues = {
       loanDisbursement: d.loanDisbursement.toString(),
       loanRecovery: d.loanRecovery.toString(),
       profitInterest: d.profitInterest.toString(),
@@ -80,6 +79,28 @@ export async function saveDailyTransactionsAction(
       collateralTransferOut: d.collateralTransferOut.toString(),
       notes: d.notes,
       supplementaryOverride: formData.get(`sup_${clientId}`) === "on",
+    };
+
+    // Only an EDIT of an already-recorded day needs approval — a first-time
+    // entry for this client/date is a create and always goes through.
+    const existingId = await getExistingTransactionId(clientId, transactionDate);
+    if (existingId && !isAdmin(user.roleKey)) {
+      await submitForApproval({
+        entityType: "client_transaction",
+        entityId: existingId,
+        branchId,
+        proposedChanges: rowValues,
+        requestedBy: user.userId,
+      });
+      submittedCount++;
+      continue;
+    }
+
+    await saveTransactionRow({
+      clientId,
+      branchId,
+      transactionDate,
+      ...rowValues,
       recordedBy: user.userId,
     });
     savedCount++;
@@ -96,7 +117,12 @@ export async function saveDailyTransactionsAction(
   }
 
   revalidatePath("/transactions");
-  return { error: savedCount === 0 ? "No changes to save." : null, savedCount };
+  const total = savedCount + submittedCount;
+  return {
+    error: total === 0 ? "No changes to save." : null,
+    savedCount,
+    submittedCount: submittedCount || undefined,
+  };
 }
 
 const dutyPostKeys = DUTY_POSTS.map((p) => p.key) as [string, ...string[]];

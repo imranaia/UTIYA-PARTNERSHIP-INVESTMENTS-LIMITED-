@@ -56,7 +56,7 @@ export default async function PortfolioTrackerPage({
         <h1 className="text-lg font-semibold">Portfolio Tracker</h1>
         <p className="text-sm text-muted-foreground">
           Day-by-day balance b/f → movement → balance c/f for Active, Default, Net Office, and Savings investment —
-          mirrors the source ledger's own CGL Tracker sheet.
+          mirrors the source ledger&apos;s own CGL Tracker sheet.
         </p>
       </div>
 
@@ -122,7 +122,7 @@ export default async function PortfolioTrackerPage({
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead className="text-right">Balance B/F</TableHead>
-              <TableHead className="text-right">Loan Disbursement</TableHead>
+              <TableHead className="text-right">Principal Disbursement</TableHead>
               <TableHead className="text-right">Active Recovery</TableHead>
               <TableHead className="text-right">Default</TableHead>
               <TableHead className="text-right">Balance C/F</TableHead>
@@ -176,7 +176,7 @@ export default async function PortfolioTrackerPage({
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead className="text-right">Balance B/F</TableHead>
-              <TableHead className="text-right">Loan Disbursement</TableHead>
+              <TableHead className="text-right">Principal Disbursement</TableHead>
               <TableHead className="text-right">Active Recovery</TableHead>
               <TableHead className="text-right">Default</TableHead>
               <TableHead className="text-right">Balance C/F</TableHead>

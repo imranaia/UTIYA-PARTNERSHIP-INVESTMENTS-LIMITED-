@@ -121,7 +121,7 @@ export default async function ReportsPage({
           <Button asChild variant="secondary" size="sm" className="shrink-0 gap-1.5">
             <Link href="/reports/loan-maturity">
               <RefreshCcw className="size-4" />
-              Loan Maturity
+              Principal Maturity
             </Link>
           </Button>
           <Button asChild variant="secondary" size="sm" className="shrink-0 gap-1.5">
@@ -164,7 +164,7 @@ export default async function ReportsPage({
 
       <GlassPanel data-tour="tour-reports-summary" className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-3 lg:grid-cols-7">
         <StatTile label="Active Clients" value={portfolio.activeClients.toLocaleString()} />
-        <StatTile label="Active Loans Outstanding" value={money(loanPortfolio.activeLoanBalance)} />
+        <StatTile label="Active Principal Outstanding" value={money(loanPortfolio.activeLoanBalance)} />
         <StatTile label="Total Capital (Savings)" value={money(portfolio.totalSavings)} />
         <StatTile label="Total Collateral Held" value={money(totalCollateral)} />
         <StatTile label="Today's Expenses" value={money(dailyExpenses)} emphasis="negative" />
@@ -182,9 +182,9 @@ export default async function ReportsPage({
 
       <h2 className="text-sm font-semibold text-muted-foreground">Daily Summary — {reportDate}</h2>
       <GlassPanel className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-3">
-        <StatTile label="Loan Disbursement" value={money(dailyTotals?.loanDisbursement ?? 0)} />
-        <StatTile label="Loan Recovery" value={money(dailyTotals?.loanRecovery ?? 0)} />
-        <StatTile label="Profit / Interest" value={money(dailyTotals?.profitInterest ?? 0)} />
+        <StatTile label="Principal Disbursement" value={money(dailyTotals?.loanDisbursement ?? 0)} />
+        <StatTile label="Principal Recovery" value={money(dailyTotals?.loanRecovery ?? 0)} />
+        <StatTile label="Profit" value={money(dailyTotals?.profitInterest ?? 0)} />
         <StatTile label="Service Charge" value={money(dailyTotals?.serviceCharge ?? 0)} />
         <StatTile label="New Savings" value={money(dailyTotals?.newSavings ?? 0)} />
         <StatTile label="Savings Recall" value={money(dailyTotals?.savingsRecall ?? 0)} />

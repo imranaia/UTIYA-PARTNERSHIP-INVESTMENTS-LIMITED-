@@ -2,7 +2,7 @@ import "server-only";
 import { getDb } from "./client";
 import { clients, branches, users, clientTransactions } from "./schema";
 import { eq, and, desc, ilike, or, inArray, sql } from "drizzle-orm";
-import { generateClientCode } from "@/lib/services/clientCode";
+import { generateClientCode, deriveEnrollmentWeekDay } from "@/lib/services/clientCode";
 import { getBranch } from "./branches";
 
 export async function listClients(params: { branchId: number | null; search?: string }) {
@@ -165,6 +165,7 @@ export async function createClient(data: {
   businessType?: string;
   businessLocation?: string;
   enrollmentDate: Date;
+  paymentDay: number;
   loanCollectorId?: number;
   openingSavings?: string;
   createdByUserId: number;
@@ -174,7 +175,8 @@ export async function createClient(data: {
   if (!branch) throw new Error("Branch not found.");
 
   return db.transaction(async (tx) => {
-    const { code, enrollmentWeek, enrollmentDay } = await generateClientCode(tx, branch.code, branch.id, data.enrollmentDate);
+    const { code } = await generateClientCode(tx, branch.code, branch.id, data.paymentDay, new Date());
+    const { enrollmentWeek, enrollmentDay } = deriveEnrollmentWeekDay(data.enrollmentDate);
 
     const [client] = await tx
       .insert(clients)
@@ -190,6 +192,7 @@ export async function createClient(data: {
         enrollmentWeek,
         enrollmentDay,
         enrollmentDate: data.enrollmentDate.toISOString().slice(0, 10),
+        paymentDay: data.paymentDay,
         loanCollectorId: data.loanCollectorId,
       })
       .returning();

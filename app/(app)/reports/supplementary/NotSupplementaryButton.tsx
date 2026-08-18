@@ -10,8 +10,8 @@ export function NotSupplementaryButton({ transactionId }: { transactionId: numbe
 
   function handleClick() {
     startTransition(async () => {
-      await markNotSupplementaryAction(transactionId);
-      toast.success("Removed from Supplementary — treated as paid on time.");
+      const { submitted } = await markNotSupplementaryAction(transactionId);
+      toast.success(submitted ? "Submitted for admin approval." : "Removed from Supplementary — treated as paid on time.");
     });
   }
 

@@ -13,6 +13,7 @@ import {
   primaryKey,
   uniqueIndex,
   index,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -75,6 +76,11 @@ export const users = pgTable("users", {
     .notNull()
     .references(() => roles.id),
   branchId: integer("branch_id").references(() => branches.id),
+  // Set only for portal accounts (role "client") — links the login back to
+  // the borrower's own client record. Null for every staff account.
+  // Explicit AnyPgColumn return type breaks the users<->clients circular
+  // type-inference cycle (clients.loan_collector_id references users.id).
+  clientId: integer("client_id").references((): AnyPgColumn => clients.id),
   isActive: boolean("is_active").notNull().default(true),
   mustChangePassword: boolean("must_change_password").notNull().default(true),
   tokenVersion: integer("token_version").notNull().default(1),
@@ -105,6 +111,22 @@ export const paymentSequences = pgTable("payment_sequences", {
   lastSeq: integer("last_seq").notNull().default(0),
 });
 
+// Backs the client-code sequence digit, which resets every calendar month
+// (unlike client_sequences, which never resets) — one counter per
+// branch+year+month.
+export const clientMonthSequences = pgTable(
+  "client_month_sequences",
+  {
+    branchId: integer("branch_id")
+      .notNull()
+      .references(() => branches.id),
+    year: smallint("year").notNull(),
+    month: smallint("month").notNull(),
+    lastSeq: integer("last_seq").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.branchId, t.year, t.month] })],
+);
+
 export const clients = pgTable(
   "clients",
   {
@@ -120,6 +142,11 @@ export const clients = pgTable(
     enrollmentWeek: smallint("enrollment_week").notNull(),
     enrollmentDay: smallint("enrollment_day").notNull(),
     enrollmentDate: date("enrollment_date").notNull(),
+    // Admin-chosen weekly payment/collection day (1=Mon..6=Sat), independent
+    // of enrollmentDate — encoded into the client code, e.g. YOL-3-0503-01-2026.
+    // Pre-existing clients were backfilled from enrollment_day before this
+    // was tightened to NOT NULL.
+    paymentDay: smallint("payment_day").notNull(),
     loanCollectorId: integer("loan_collector_id").references(() => users.id),
     status: varchar("status", { length: 20 }).notNull().default("active"),
     // Business/trade profile — matches the source ledger's own "Supervision
@@ -130,6 +157,125 @@ export const clients = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("idx_clients_branch").on(t.branchId)],
+);
+
+// ===================== Client portal notices =====================
+// Short admin-authored messages shown on a borrower's portal dashboard.
+// clientId null = branch-wide broadcast to every portal user in that branch.
+export const clientNotices = pgTable(
+  "client_notices",
+  {
+    id: serial("id").primaryKey(),
+    clientId: integer("client_id").references(() => clients.id),
+    branchId: integer("branch_id")
+      .notNull()
+      .references(() => branches.id),
+    message: text("message").notNull(),
+    createdBy: integer("created_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("idx_client_notices_client").on(t.clientId)],
+);
+
+// ===================== Pending changes (approval workflow) =====================
+// Non-admin edits to clients/client_transactions land here instead of writing
+// through; an admin approves (re-applies proposedChanges) or rejects.
+export const pendingChanges = pgTable(
+  "pending_changes",
+  {
+    id: serial("id").primaryKey(),
+    entityType: varchar("entity_type", { length: 30 }).notNull(), // 'client' | 'client_transaction'
+    entityId: integer("entity_id").notNull(),
+    branchId: integer("branch_id")
+      .notNull()
+      .references(() => branches.id),
+    proposedChanges: jsonb("proposed_changes").notNull(),
+    requestedBy: integer("requested_by")
+      .notNull()
+      .references(() => users.id),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+    status: varchar("status", { length: 20 }).notNull().default("pending"), // pending | approved | rejected
+    reviewedBy: integer("reviewed_by").references(() => users.id),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reviewNote: text("review_note"),
+  },
+  (t) => [index("idx_pending_changes_status").on(t.status)],
+);
+
+// ===================== Loan (Principal) agreements =====================
+// Principal + profit + tenure -> an automatically computed repayment
+// schedule (see lib/services/loanAgreement.ts). The weekly schedule itself
+// isn't persisted per row — it's derived on demand from these fields.
+export const loanAgreements = pgTable(
+  "loan_agreements",
+  {
+    id: serial("id").primaryKey(),
+    clientId: integer("client_id")
+      .notNull()
+      .references(() => clients.id),
+    branchId: integer("branch_id")
+      .notNull()
+      .references(() => branches.id),
+    principalAmount: numeric("principal_amount", { precision: 14, scale: 2 }).notNull(),
+    profitAmount: numeric("profit_amount", { precision: 14, scale: 2 }).notNull(),
+    totalRepayable: numeric("total_repayable", { precision: 14, scale: 2 }).notNull(),
+    tenureWeeks: integer("tenure_weeks").notNull(),
+    installmentAmount: numeric("installment_amount", { precision: 14, scale: 2 }).notNull(),
+    startDate: date("start_date").notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("active"), // active | completed | cancelled
+    createdBy: integer("created_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("idx_loan_agreements_client").on(t.clientId)],
+);
+
+// ===================== Pre-disbursement checklist =====================
+// Matches AMC Check list.docx — the branch officer's verification pass
+// before a principal is disbursed (or a returning client's next cycle
+// approved). One client can have several over time, one per disbursement.
+export const preDisbursementChecklists = pgTable(
+  "pre_disbursement_checklists",
+  {
+    id: serial("id").primaryKey(),
+    clientId: integer("client_id")
+      .notNull()
+      .references(() => clients.id),
+    branchId: integer("branch_id")
+      .notNull()
+      .references(() => branches.id),
+    nickname: varchar("nickname", { length: 120 }),
+    nin: varchar("nin", { length: 20 }),
+    neighborRelativePhone: varchar("neighbor_relative_phone", { length: 30 }),
+    shopOwner: boolean("shop_owner").notNull().default(false),
+    rentingShop: boolean("renting_shop").notNull().default(false),
+    gpsPhotoVerified: boolean("gps_photo_verified").notNull().default(false),
+    gpsTimeVerified: boolean("gps_time_verified").notNull().default(false),
+    amountApplied: numeric("amount_applied", { precision: 14, scale: 2 }),
+    recommendedAmount: numeric("recommended_amount", { precision: 14, scale: 2 }),
+    amountApproved: numeric("amount_approved", { precision: 14, scale: 2 }),
+    clientType: varchar("client_type", { length: 20 }).notNull().default("new"), // new | returning
+    preferredTenureMonths: integer("preferred_tenure_months"),
+    typeOfBusiness: varchar("type_of_business", { length: 80 }),
+    experienceYears: integer("experience_years"),
+    applicationFormFilled: boolean("application_form_filled").notNull().default(false),
+    customerType: varchar("customer_type", { length: 20 }), // walk_in | marketing
+    appraisalReportAttached: boolean("appraisal_report_attached").notNull().default(false),
+    // Returning-client-only checks on the source document — left null for new clients.
+    supervisionReportAttached: boolean("supervision_report_attached"),
+    loanAmountReviewed: boolean("loan_amount_reviewed"),
+    stockAvailabilityChecked: boolean("stock_availability_checked").notNull().default(false),
+    bankDetails: text("bank_details"),
+    officerName: varchar("officer_name", { length: 120 }).notNull(),
+    recordedBy: integer("recorded_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("idx_checklists_client").on(t.clientId)],
 );
 
 // ===================== Import batches (declared before client_transactions, referenced by it) =====================

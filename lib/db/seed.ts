@@ -13,6 +13,7 @@ const MODULE_DEFS = [
   { key: "ledger", label: "Ledger", icon: "BookText", routePrefix: "/ledger", sortOrder: 45 },
   { key: "reports", label: "Reports", icon: "BarChart3", routePrefix: "/reports", sortOrder: 50 },
   { key: "import", label: "Excel Import", icon: "Upload", routePrefix: "/import", sortOrder: 60 },
+  { key: "approvals", label: "Approvals", icon: "CheckCheck", routePrefix: "/approvals", sortOrder: 65 },
   { key: "users", label: "Users", icon: "UserCog", routePrefix: "/admin/users", sortOrder: 70 },
   { key: "roles", label: "Roles", icon: "ShieldCheck", routePrefix: "/admin/roles", sortOrder: 80 },
   { key: "branches", label: "Branches", icon: "Building2", routePrefix: "/admin/branches", sortOrder: 90 },
@@ -21,9 +22,14 @@ const MODULE_DEFS = [
 const ROLE_DEFS = [
   { key: "super_admin", name: "Super Admin", isSystem: true },
   { key: "branch_admin", name: "Branch Admin", isSystem: true },
-  { key: "loan_collector", name: "Loan Collector", isSystem: true },
+  { key: "loan_collector", name: "Collections Officer", isSystem: true },
   { key: "expense_officer", name: "Expense Officer", isSystem: true },
   { key: "viewer", name: "Viewer", isSystem: true },
+  // Portal (borrower) accounts. Deliberately given no role_permissions rows
+  // below — the portal is row-scoped to the account's own client record and
+  // bypasses the module/permission system entirely (see requirePortalClient
+  // in lib/auth/session.ts) rather than being granted fake module access.
+  { key: "client", name: "Client Portal", isSystem: true },
 ] as const;
 
 // module -> { view, create, edit, delete } per role key
@@ -38,6 +44,7 @@ const PERMISSION_MATRIX: Record<string, Record<string, [boolean, boolean, boolea
     ledger: [true, true, true, false],
     reports: [true, false, false, false],
     import: [true, true, false, false],
+    approvals: [true, false, true, false],
     users: [true, true, true, false],
   },
   loan_collector: {
@@ -106,8 +113,13 @@ async function main() {
   const moduleByKey = new Map(allModules.map((m) => [m.key, m]));
 
   console.log("Seeding roles...");
-  const roleRows = await db.insert(roles).values([...ROLE_DEFS]).onConflictDoNothing({ target: roles.key }).returning();
-  const allRoles = roleRows.length ? roleRows : await db.select().from(roles);
+  for (const roleDef of ROLE_DEFS) {
+    await db
+      .insert(roles)
+      .values(roleDef)
+      .onConflictDoUpdate({ target: roles.key, set: { name: roleDef.name } });
+  }
+  const allRoles = await db.select().from(roles);
   const roleByKey = new Map(allRoles.map((r) => [r.key, r]));
 
   console.log("Seeding role_permissions...");

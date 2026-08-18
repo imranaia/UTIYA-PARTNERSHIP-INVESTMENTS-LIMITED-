@@ -6,22 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { recordLoanMaturityAction, type MaturityFormState } from "../actions";
+import { createLoanAgreementAction, type AgreementFormState } from "./portalActions";
 
-const initialState: MaturityFormState = { error: null };
+const initialState: AgreementFormState = { error: null };
 
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function RecordMaturityDialog({ clientId, branchId }: { clientId: number; branchId: number }) {
+export function LoanAgreementDialog({ clientId }: { clientId: number }) {
   const [open, setOpen] = useState(false);
-  const [state, formAction, pending] = useActionState(recordLoanMaturityAction, initialState);
+  const [state, formAction, pending] = useActionState(createLoanAgreementAction, initialState);
 
   useEffect(() => {
     if (state === initialState) return;
     if (!pending && !state.error) {
-      toast.success("Principal maturity recorded.");
+      toast.success("Principal agreement created.");
       setOpen(false);
     }
   }, [pending, state]);
@@ -30,42 +30,34 @@ export function RecordMaturityDialog({ clientId, branchId }: { clientId: number;
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="secondary" size="sm">
-          Record principal maturity
+          New principal agreement
         </Button>
       </DialogTrigger>
       <DialogContent className="glass-panel-strong border-none sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Record principal maturity</DialogTitle>
+          <DialogTitle>New principal agreement</DialogTitle>
         </DialogHeader>
         <form action={formAction} className="space-y-4">
           <input type="hidden" name="clientId" value={clientId} />
-          <input type="hidden" name="branchId" value={branchId} />
 
           <div className="space-y-1.5">
-            <Label htmlFor="maturedAt">Date</Label>
-            <Input id="maturedAt" name="maturedAt" type="date" defaultValue={today()} required />
+            <Label htmlFor="principalAmount">Principal (₦)</Label>
+            <Input id="principalAmount" name="principalAmount" type="number" min="1" step="0.01" required />
           </div>
 
           <div className="space-y-1.5">
-            <Label>Renewing their principal?</Label>
-            <div className="flex gap-4 text-sm">
-              <label className="flex items-center gap-1.5">
-                <input type="radio" name="renewed" value="yes" defaultChecked /> Yes, renewed
-              </label>
-              <label className="flex items-center gap-1.5">
-                <input type="radio" name="renewed" value="no" /> No, not renewing
-              </label>
-            </div>
+            <Label htmlFor="profitAmount">Profit (₦)</Label>
+            <Input id="profitAmount" name="profitAmount" type="number" min="0" step="0.01" required />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="amountWithClient">Amount still with client (optional)</Label>
-            <Input id="amountWithClient" name="amountWithClient" type="number" min="0" step="0.01" />
+            <Label htmlFor="tenureWeeks">Tenure (weeks)</Label>
+            <Input id="tenureWeeks" name="tenureWeeks" type="number" min="1" step="1" required />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="notes">Notes (optional)</Label>
-            <Input id="notes" name="notes" />
+            <Label htmlFor="startDate">Start date</Label>
+            <Input id="startDate" name="startDate" type="date" defaultValue={today()} required />
           </div>
 
           {state.error && (
@@ -76,7 +68,7 @@ export function RecordMaturityDialog({ clientId, branchId }: { clientId: number;
 
           <DialogFooter>
             <Button type="submit" disabled={pending} className="w-full">
-              {pending ? "Saving…" : "Save"}
+              {pending ? "Creating…" : "Create"}
             </Button>
           </DialogFooter>
         </form>

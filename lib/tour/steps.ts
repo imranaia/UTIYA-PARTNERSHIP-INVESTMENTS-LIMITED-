@@ -22,7 +22,7 @@ export const TOUR_STEPS: TourStep[] = [
     target: "tour-dashboard-stats",
     module: "dashboard",
     title: "Your daily snapshot",
-    body: "Active clients, outstanding loans, savings, collateral, today's expenses and open defaults — the numbers you'd want first thing in the morning.",
+    body: "Active clients, outstanding principal, savings, collateral, today's expenses and open defaults — the numbers you'd want first thing in the morning.",
   },
   {
     id: "dashboard-duty",
@@ -38,7 +38,7 @@ export const TOUR_STEPS: TourStep[] = [
     target: "tour-clients-actions",
     module: "clients",
     title: "Clients",
-    body: "Your full roster, searchable by name or code. When adding a client, the enrollment date must fall on a weekday — it permanently sets their collection day and client code, so it's worth getting right the first time.",
+    body: "Your full roster, searchable by name or code. When adding a client, you choose their weekly payment day yourself — it's baked permanently into their client code, so it's worth getting right the first time.",
   },
   {
     id: "txn-filters",
@@ -86,7 +86,7 @@ export const TOUR_STEPS: TourStep[] = [
     target: "tour-reports-summary",
     module: "reports",
     title: "Reports",
-    body: "A daily/branch summary — disbursement, recovery, interest, savings movement and a Total Receipt figure matching the old paper ledger's own column.",
+    body: "A daily/branch summary — disbursement, recovery, profit, savings movement and a Total Receipt figure matching the old paper ledger's own column.",
   },
   {
     id: "reports-links",
@@ -94,7 +94,7 @@ export const TOUR_STEPS: TourStep[] = [
     target: "tour-reports-links",
     module: "reports",
     title: "Seven deeper reports",
-    body: "Portfolio Tracker (the digital CGL Tracker), Supplementary, Dormant Clients, Client Statement, Custom Report, Loan Maturity, and Week Summary — each one covered in the full user guide.",
+    body: "Portfolio Tracker (the digital CGL Tracker), Supplementary, Dormant Clients, Client Statement, Custom Report, Principal Maturity, and Week Summary — each one covered in the full user guide.",
   },
   {
     id: "import",
@@ -110,7 +110,7 @@ export const TOUR_STEPS: TourStep[] = [
     target: "tour-admin-users",
     module: "users",
     title: "Admin",
-    body: "Manage staff accounts here, and Roles and Branches from the sidebar if you have access. Branch admins can only assign Loan Collector, Expense Officer or Viewer.",
+    body: "Manage staff accounts here, and Roles and Branches from the sidebar if you have access. Branch admins can only assign Collections Officer, Expense Officer or Viewer.",
   },
   {
     id: "profile",

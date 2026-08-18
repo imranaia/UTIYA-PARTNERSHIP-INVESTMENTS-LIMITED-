@@ -59,6 +59,15 @@ export async function listSupplementaryPayments(params: {
   }));
 }
 
+export async function getTransactionBranchId(transactionId: number) {
+  const db = getDb();
+  const [row] = await db
+    .select({ branchId: clientTransactions.branchId })
+    .from(clientTransactions)
+    .where(eq(clientTransactions.id, transactionId));
+  return row?.branchId ?? null;
+}
+
 export async function setSupplementaryOverride(transactionId: number, notSupplementary: boolean) {
   const db = getDb();
   const [row] = await db

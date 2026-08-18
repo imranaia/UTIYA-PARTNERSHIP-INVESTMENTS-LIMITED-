@@ -49,7 +49,7 @@ export function ClientCard({
 
   useEffect(() => {
     if (wasPending.current && !pending && !state.error) {
-      toast.success("Client updated.");
+      toast.success(state.submitted ? "Submitted for admin approval." : "Client updated.");
       setEditing(false);
     }
     wasPending.current = pending;
@@ -107,7 +107,7 @@ export function ClientCard({
                 <dd className="font-medium">{client.enrollmentDate}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted-foreground">Loan collector</dt>
+                <dt className="text-xs text-muted-foreground">Collections officer</dt>
                 <dd className="font-medium">{client.loanCollectorName || "Unassigned"}</dd>
               </div>
               <div>
@@ -176,7 +176,7 @@ export function ClientCard({
               </div>
               {collectors.length > 0 && (
                 <div className="col-span-2 space-y-1.5">
-                  <Label htmlFor={`loanCollectorId-${client.id}`}>Loan collector</Label>
+                  <Label htmlFor={`loanCollectorId-${client.id}`}>Collections officer</Label>
                   <Select name="loanCollectorId" defaultValue={client.loanCollectorId ? String(client.loanCollectorId) : undefined}>
                     <SelectTrigger id={`loanCollectorId-${client.id}`} className="w-full">
                       <SelectValue placeholder="Unassigned" />

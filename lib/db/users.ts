@@ -20,6 +20,7 @@ export async function getUserByUsername(username: string) {
       roleId: users.roleId,
       roleKey: roles.key,
       branchId: users.branchId,
+      clientId: users.clientId,
     })
     .from(users)
     .innerJoin(roles, eq(roles.id, users.roleId))
@@ -254,6 +255,51 @@ export async function setUserActive(userId: number, isActive: boolean) {
     .where(eq(users.id, userId))
     .returning();
   return user;
+}
+
+// ===================== Client portal logins =====================
+// A portal account is just a `users` row with role "client" and clientId
+// set — it reuses the same session/login/password machinery as staff
+// accounts instead of a parallel auth system.
+
+export async function getClientLogin(clientId: number) {
+  const db = getDb();
+  const [row] = await db
+    .select({ id: users.id, username: users.username, isActive: users.isActive })
+    .from(users)
+    .where(eq(users.clientId, clientId));
+  return row ?? null;
+}
+
+// Username derives from the client's own (already-unique) client code, e.g.
+// "yol-3-0503-01-2026" — memorable to the client and guaranteed unique.
+export async function createClientLogin(data: {
+  clientId: number;
+  clientCode: string;
+  clientFullName: string;
+  branchId: number;
+  createdBy: number;
+}) {
+  const db = getDb();
+  const [clientRole] = await db.select().from(roles).where(eq(roles.key, "client"));
+  if (!clientRole) throw new Error("Client role is not seeded.");
+
+  const tempPassword = generateTempPassword();
+  const passwordHash = await hashPassword(tempPassword);
+  const [user] = await db
+    .insert(users)
+    .values({
+      username: data.clientCode.toLowerCase(),
+      passwordHash,
+      fullName: data.clientFullName,
+      roleId: clientRole.id,
+      branchId: data.branchId,
+      clientId: data.clientId,
+      createdBy: data.createdBy,
+      mustChangePassword: true,
+    })
+    .returning();
+  return { user, tempPassword };
 }
 
 export async function usernameExists(username: string, excludeUserId?: number) {

@@ -38,9 +38,9 @@ type Row = {
 const initialState: DailyTransactionsState = { error: null, savedCount: 0 };
 
 const FIELDS: { key: keyof Row; prefix: string; label: string; direction: "received" | "paidOut" }[] = [
-  { key: "loanDisbursement", prefix: "ld", label: "Loan Disbursement", direction: "paidOut" },
-  { key: "loanRecovery", prefix: "lr", label: "Loan Recovery", direction: "received" },
-  { key: "profitInterest", prefix: "pi", label: "Interest", direction: "received" },
+  { key: "loanDisbursement", prefix: "ld", label: "Principal Disbursement", direction: "paidOut" },
+  { key: "loanRecovery", prefix: "lr", label: "Principal Recovery", direction: "received" },
+  { key: "profitInterest", prefix: "pi", label: "Profit", direction: "received" },
   { key: "serviceCharge", prefix: "sc", label: "Service Charge", direction: "received" },
   { key: "newSavings", prefix: "ns", label: "New Savings", direction: "received" },
   { key: "savingsRecall", prefix: "sr", label: "Savings Recall", direction: "paidOut" },
@@ -106,6 +106,9 @@ function ClientCard({
     if (state.error) toast.error(state.error);
     else if (state.savedCount > 0) {
       toast.success(`Saved ${row.fullName}.`);
+      setOpen(false);
+    } else if (state.submittedCount) {
+      toast.success(`Submitted ${row.fullName}'s edit for admin approval.`);
       setOpen(false);
     }
   }, [state, row.fullName]);

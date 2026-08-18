@@ -154,7 +154,7 @@ export default async function ClientStatementPage({
             <p className="font-medium">{client.enrollmentDate}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Loan collector</p>
+            <p className="text-xs text-muted-foreground">Collections officer</p>
             <p className="font-medium">{client.loanCollectorName || "Unassigned"}</p>
           </div>
         </div>
@@ -166,7 +166,7 @@ export default async function ClientStatementPage({
           <p className="text-lg font-semibold text-primary">{money(currentSavings)}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Outstanding Loan</p>
+          <p className="text-xs text-muted-foreground">Outstanding Principal</p>
           <p className="text-lg font-semibold">{money(outstandingLoan)}</p>
         </div>
         <div>
@@ -186,9 +186,9 @@ export default async function ClientStatementPage({
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Payment ID</TableHead>
-              <TableHead className="text-right">Loan Disb.</TableHead>
-              <TableHead className="text-right">Loan Recovery</TableHead>
-              <TableHead className="text-right">Interest</TableHead>
+              <TableHead className="text-right">Principal Disb.</TableHead>
+              <TableHead className="text-right">Principal Recovery</TableHead>
+              <TableHead className="text-right">Profit</TableHead>
               <TableHead className="text-right">Service Chg.</TableHead>
               <TableHead className="text-right">New Savings</TableHead>
               <TableHead className="text-right">Savings Recall</TableHead>
