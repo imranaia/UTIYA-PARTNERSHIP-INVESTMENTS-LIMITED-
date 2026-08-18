@@ -1,0 +1,82 @@
+"use client";
+
+import { useReducedMotion } from "motion/react";
+import { FileCheck, Wallet, Repeat } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const STOPS = [
+  { icon: FileCheck, label: "You apply", detail: "Tell us about your business and how much you need." },
+  { icon: Wallet, label: "Cash reaches you", detail: "Approved principal is paid out, no collateral held." },
+  { icon: Repeat, label: "You repay weekly", detail: "Small, predictable installments as your business earns." },
+];
+
+const DESKTOP_PATH = "M90,110 C230,40 310,40 450,60 C590,80 670,180 810,150";
+const MOBILE_PATH = "M110,60 C40,180 40,240 110,320 C180,400 180,480 110,560";
+
+// The narrative device for "how the money moves": one coin travels the full
+// apply -> disburse -> repay loop on a native SVG path (no JS animation
+// loop), so it stays cheap even with the loop running indefinitely.
+export function MoneyFlowDiagram() {
+  const reduce = useReducedMotion();
+
+  return (
+    <div className="relative">
+      <svg
+        aria-hidden
+        viewBox="0 0 900 220"
+        preserveAspectRatio="none"
+        className="absolute inset-0 hidden h-full w-full md:block"
+      >
+        <path id="flow-desktop" d={DESKTOP_PATH} fill="none" stroke="var(--border)" strokeWidth={2} />
+        <Coin pathId="flow-desktop" reduce={!!reduce} startX={90} startY={110} />
+      </svg>
+      <svg
+        aria-hidden
+        viewBox="0 0 220 620"
+        preserveAspectRatio="none"
+        className="absolute inset-0 block h-full w-full md:hidden"
+      >
+        <path id="flow-mobile" d={MOBILE_PATH} fill="none" stroke="var(--border)" strokeWidth={2} />
+        <Coin pathId="flow-mobile" reduce={!!reduce} startX={110} startY={60} />
+      </svg>
+
+      <div className="relative flex flex-col gap-10 md:flex-row md:items-start md:justify-between md:gap-6">
+        {STOPS.map((stop, i) => (
+          <div
+            key={stop.label}
+            className={cn(
+              "flex flex-col items-center gap-3 text-center md:w-64",
+              i === 1 && "md:mt-8",
+              i === 2 && "md:mt-4",
+            )}
+          >
+            <div
+              className="flex size-14 shrink-0 items-center justify-center rounded-full"
+              style={{
+                background: "radial-gradient(circle at 32% 28%, oklch(0.92 0.1 90), var(--gold) 60%, oklch(0.58 0.1 75) 100%)",
+                boxShadow: "inset 0 2px 2px rgba(255,255,255,0.6), inset 0 -3px 6px rgba(0,0,0,0.18), 0 8px 20px -8px rgba(0,0,0,0.3)",
+              }}
+            >
+              <stop.icon className="size-6 text-[oklch(0.28_0.04_75)]" strokeWidth={1.75} />
+            </div>
+            <p className="text-sm font-semibold">{stop.label}</p>
+            <p className="max-w-[26ch] text-xs text-muted-foreground">{stop.detail}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Coin({ pathId, reduce, startX, startY }: { pathId: string; reduce: boolean; startX: number; startY: number }) {
+  if (reduce) {
+    return <circle r={8} cx={startX} cy={startY} fill="var(--gold)" />;
+  }
+  return (
+    <circle r={8} fill="var(--gold)">
+      <animateMotion dur="4s" repeatCount="indefinite">
+        <mpath href={`#${pathId}`} />
+      </animateMotion>
+    </circle>
+  );
+}
